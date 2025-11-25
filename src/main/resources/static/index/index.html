@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能农场实时监控</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="index.css">
+</head>
+<body>
+<header>
+    <h1>🌱 智能农场环境监控系统</h1>
+</header>
+
+<main class="dashboard">
+
+    <section class="status-panel">
+        <h2>实时环境状态</h2>
+        <div class="metrics">
+            <div class="metric-box temperature">
+                <h3>温度 (℃)</h3>
+                <p id="currentTemp">25.5</p>
+            </div>
+            <div class="metric-box humidity">
+                <h3>湿度 (%)</h3>
+                <p id="currentHumid">65</p>
+            </div>
+            <div class="metric-box light">
+                <h3>光照 (lux)</h3>
+                <p id="currentLight">8000</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="chart-panel">
+        <h2>近一小时数据趋势（每分钟更新）</h2>
+        <div class="chart-container">
+            <canvas id="tempHumidityChart"></canvas>
+        </div>
+    </section>
+
+    <section class="control-panel">
+        <h2>设备操作控制</h2>
+        <div class="controls">
+            <div class="control-item">
+                <h3>💧 自动浇水</h3>
+                <p>当前土壤湿度：<span id="soilMoisture">45%</span></p>
+                <button id="waterBtn" class="action-btn primary">点击浇水</button>
+            </div>
+            <div class="control-item">
+                <h3>🔥 升温加热</h3>
+                <p>目标温度：<input type="number" id="targetTemp" value="28" min="20" max="40"> ℃</p>
+                <button id="heatBtn" class="action-btn secondary">升温至目标</button>
+            </div>
+        </div>
+    </section>
+
+    <section class="weather-panel">
+        <h2>🌤️ 农场地区天气预报</h2>
+        <div id="weatherInfo">
+            <p>正在加载天气数据...</p>
+        </div>
+        <div class="location-input">
+            <label for="cityInput">选择/输入城市：</label>
+            <input type="text" id="cityInput" placeholder="例如：北京" value="您的默认城市">
+            <button id="getWeatherBtn">更新天气</button>
+        </div>
+    </section>
+</main>
+
+<script src="index.js"></script>
+</body>
+</html>
