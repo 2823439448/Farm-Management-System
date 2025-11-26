@@ -4,6 +4,8 @@ body {
     color: #333;
     margin: 0;
     padding: 0;
+    /* 防止滚动条抖动 */
+    overflow-x: hidden;
 }
 
 header {
@@ -12,12 +14,77 @@ header {
     padding: 20px;
     text-align: center;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    /* 核心修改：为了定位导航栏，header需要是相对定位 */
+    position: relative;
+    /* 确保内容在导航栏下方 */
+    z-index: 1000;
 }
 
 header h1 {
     margin: 0;
     font-size: 2.2em;
 }
+
+/* =========================================
+   优化：导航栏样式 (改为深色/专业色调)
+   ========================================= */
+.main-nav {
+    position: absolute; /* 相对于header定位 */
+    top: 100%;          /* 初始时在header下方 */
+    left: 0;
+    width: 100%;
+    /* 优化 1: 使用深蓝灰色背景，更显专业和现代 */
+    background-color: rgba(44, 62, 80, 0.98); /* 深蓝灰色 (Dark Navy/Slate) */
+    /* 优化 2: 更柔和的阴影 */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    padding: 15px 0; /* 增加垂直内边距，更宽敞 */
+    opacity: 0;         /* 初始隐藏 */
+    visibility: hidden; /* 初始隐藏 */
+    /* 优化 3: 调整过渡时间和缓动函数，使其更具“质感” */
+    transform: translateY(-100%);
+    transition: transform 0.35s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.35s ease-out, visibility 0.35s ease-out;
+    /* 确保导航栏内容在最上层 */
+    z-index: 999;
+    text-align: center; /* 确保链接居中 */
+}
+
+/* 鼠标悬停在header上时，导航栏显示 */
+header:hover .main-nav {
+    opacity: 1;         /* 显示 */
+    visibility: visible; /* 显示 */
+    transform: translateY(0); /* 恢复到原位，向下滑出 */
+}
+
+.main-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex; /* 横向排列 */
+    justify-content: center; /* 居中显示 */
+    gap: 40px; /* 增加链接之间的间距 */
+}
+
+.main-nav ul li a {
+    /* 优化 4: 文字颜色使用浅灰色 */
+    color: #ecf0f1;
+    text-decoration: none;
+    font-size: 1.1em;
+    font-weight: 500;
+    padding: 8px 15px; /* 增加点击区域 */
+    border-radius: 4px;
+    /* 优化 5: 增加边框和背景的平滑过渡 */
+    transition: background-color 0.3s ease, color 0.3s ease, border-bottom 0.3s ease;
+    border-bottom: 2px solid transparent; /* 初始透明下划线 */
+}
+
+/* 优化 6: 悬停效果改为一个底部高亮线和更柔和的背景色 */
+.main-nav ul li a:hover {
+    background-color: rgba(52, 152, 219, 0.15); /* 浅蓝色背景，微透明 */
+    border-bottom: 2px solid #3498db; /* 底部高亮线，使用主题蓝 */
+    color: #ffffff; /* 悬停时文字变为纯白 */
+}
+/* ========================================= */
+
 
 /* --- 核心布局 Dashboard --- */
 .dashboard {
@@ -31,7 +98,6 @@ header h1 {
 }
 
 /* 区域布局定义 */
-/* 给 status-panel 加上 flex 属性，解决溢出问题 */
 .status-panel {
     grid-area: 1 / 1 / 2 / 2;
     display: flex;
@@ -52,51 +118,44 @@ section {
 section h2 {
     color: #2c3e50;
     margin-top: 0;
-    margin-bottom: 10px; /* 减小标题下边距 */
+    margin-bottom: 10px;
     padding-bottom: 10px;
     border-bottom: 1px solid #eee;
-    flex-shrink: 0; /* 防止标题被压缩 */
+    flex-shrink: 0;
 }
 
-/* =========================================
-   实时数值样式 (纵向堆叠 + 防溢出)
-   ========================================= */
+/* 实时数值样式 (纵向堆叠 + 防溢出) */
 .metrics {
     display: flex;
-    flex-direction: column; /* 纵向排列 */
-    gap: 15px;             /* 盒子间距 */
-    flex: 1;               /* 占据剩余空间 */
+    flex-direction: column;
+    gap: 15px;
+    flex: 1;
     width: 100%;
 }
 
 .metric-box {
     width: 100%;
-    flex: 1;               /* 三个盒子均分可用高度 */
+    flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
     align-items: center;
     text-align: center;
-    padding: 5px;          /* 减小内边距 */
+    padding: 5px;
     border-radius: 8px;
     box-sizing: border-box;
     transition: transform 0.2s ease-in-out;
-    min-height: 0;         /* 防止内容溢出 */
+    min-height: 0;
 }
 
 .metric-box:hover {
     transform: translateY(-2px);
 }
 
-/* =========================================
-   【核心修改】颜色定义交换
-   ========================================= */
-/* 温度现在是蓝色 */
-.temperature { background-color: #e6f7ff; border: 1px solid #99c2ff; color: #337ab7;}
-/* 湿度现在是红色 */
-.humidity { background-color: #ffeded; border: 1px solid #ff9999; color: #d9534f;}
-/* 光照保持不变 */
-.light { background-color: #fffbe6; border: 1px solid #ffe799; color: #f0ad4e;}
+/* 颜色定义（已交换温湿度颜色） */
+.temperature { background-color: #e6f7ff; border: 1px solid #99c2ff; color: #337ab7;} /* 温度现在是蓝色 */
+.humidity { background-color: #ffeded; border: 1px solid #ff9999; color: #d9534f;}    /* 湿度现在是红色 */
+.light { background-color: #fffbe6; border: 1px solid #ffe799; color: #f0ad4e;}       /* 光照保持不变 */
 
 .metric-box h3 {
     margin: 0 0 5px 0;
@@ -104,18 +163,14 @@ section h2 {
     color: #666;
 }
 .metric-box p {
-    font-size: 2em; /* 字体大小适配 */
+    font-size: 2em;
     font-weight: bold;
     margin: 0;
 }
 
-/* =========================================
-   其他样式保持原样
-   ========================================= */
-
 /* 图表容器 */
 .chart-container {
-    height: 350px; /* 决定了第一行的高度 */
+    height: 350px;
     width: 100%;
 }
 
@@ -219,6 +274,6 @@ section h2 {
         grid-area: auto !important;
     }
     .status-panel {
-        height: auto; /* 手机端取消高度限制 */
+        height: auto;
     }
 }
