@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DeepSeek Chat</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f2f2;
+            margin: 0;
+            padding: 0;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 800px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        .chat-box {
+            background: #fff;
+            border-radius: 10px;
+            padding: 20px;
+            height: 500px;
+            overflow-y: auto;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        .msg {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-radius: 8px;
+            max-width: 80%;
+        }
+
+        .msg.user {
+            background: #d1eaff;
+            align-self: flex-end;
+            text-align: right;
+        }
+
+        .msg.bot {
+            background: #e7e7e7;
+        }
+
+        .input-area {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #aaa;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 12px 20px;
+            border: none;
+            background: #4CAF50;
+            color: white;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #45a049;
+        }
+    </style>
+</head>
+
+<body>
+<div id="app">
+    <h2>🤖 DeepSeek Chat</h2>
+
+    <div class="chat-box" id="chatBox"></div>
+
+    <div class="input-area">
+        <input id="msgInput" type="text" placeholder="请输入你的消息..." />
+        <button onclick="sendMsg()">发送</button>
+    </div>
+</div>
+
+<script>
+    const chatBox = document.getElementById("chatBox");
+    const input = document.getElementById("msgInput");
+
+    function addMsg(text, sender) {
+        const div = document.createElement("div");
+        div.className = "msg " + sender;
+        div.innerText = text;
+        chatBox.appendChild(div);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function sendMsg() {
+        const msg = input.value.trim();
+        if (!msg) return;
+
+        addMsg(msg, "user");
+        input.value = "";
+
+        fetch("/api/chat", {
+            method: "POST",
+            headers: { "Content-Type": "text/plain" },
+            body: msg
+        })
+            .then(res => res.text())
+            .then(text => addMsg(text, "bot"))
+            .catch(e => addMsg("请求失败：" + e, "bot"));
+    }
+
+    // 回车发送
+    input.addEventListener("keydown", e => {
+        if (e.key === "Enter") sendMsg();
+    });
+</script>
+
+</body>
+</html>

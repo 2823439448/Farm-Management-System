@@ -10,4 +10,9 @@ public class HomeController {
     public String home() {
         return "redirect:/index/index.html";
     }
+
+    @GetMapping("/chat")
+    public String chatPage() {
+        return "AIChat/chat"; // 返回chat.html
+    }
 }
