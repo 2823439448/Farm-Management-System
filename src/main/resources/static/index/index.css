@@ -14,10 +14,10 @@ header {
     padding: 20px;
     text-align: center;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-    /* 核心修改：为了定位导航栏，header需要是相对定位 */
+    /* 核心：为了定位导航栏，header需要是相对定位 */
     position: relative;
-    /* 确保内容在导航栏下方 */
-    z-index: 1000;
+    /* 确保 header 在导航栏之下 */
+    z-index: 100;
 }
 
 header h1 {
@@ -26,32 +26,30 @@ header h1 {
 }
 
 /* =========================================
-   优化：导航栏样式 (改为深色/专业色调)
+   告示牌导航栏样式 (最终修正：居中和文字可见)
    ========================================= */
 .main-nav {
-    position: absolute; /* 相对于header定位 */
-    top: 100%;          /* 初始时在header下方 */
+    position: absolute; /* 相对于 header 定位 */
+    top: 100%; /* 初始在 header 正下方 */
     left: 0;
     width: 100%;
-    /* 优化 1: 使用深蓝灰色背景，更显专业和现代 */
-    background-color: rgba(44, 62, 80, 0.98); /* 深蓝灰色 (Dark Navy/Slate) */
-    /* 优化 2: 更柔和的阴影 */
-    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
-    padding: 15px 0; /* 增加垂直内边距，更宽敞 */
-    opacity: 0;         /* 初始隐藏 */
+    /* 移除所有背景、阴影和内边距，实现无横条效果 */
+    padding: 0;
+
+    opacity: 0; /* 初始隐藏 */
     visibility: hidden; /* 初始隐藏 */
-    /* 优化 3: 调整过渡时间和缓动函数，使其更具“质感” */
-    transform: translateY(-100%);
+    transform: translateY(-100%); /* 初始位于header上方，准备滑下 */
     transition: transform 0.35s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.35s ease-out, visibility 0.35s ease-out;
-    /* 确保导航栏内容在最上层 */
-    z-index: 999;
-    text-align: center; /* 确保链接居中 */
+    /* 确保导航栏在最上层，避免被内容遮挡 */
+    z-index: 1001;
+    text-align: center;
+    background-color: transparent; /* 确保背景透明 */
 }
 
 /* 鼠标悬停在header上时，导航栏显示 */
 header:hover .main-nav {
-    opacity: 1;         /* 显示 */
-    visibility: visible; /* 显示 */
+    opacity: 1;
+    visibility: visible;
     transform: translateY(0); /* 恢复到原位，向下滑出 */
 }
 
@@ -61,27 +59,79 @@ header:hover .main-nav {
     margin: 0;
     display: flex; /* 横向排列 */
     justify-content: center; /* 居中显示 */
-    gap: 40px; /* 增加链接之间的间距 */
+    gap: 30px; /* 告示牌之间的间距 */
+    /* 修正：消除 ul 上的默认间距 */
+    line-height: 0;
+}
+
+.main-nav ul li {
+    list-style-type: none; /* 消除 li 上的默认符号 */
+    /* 修正：消除 li 上的默认间距，但保留 font-size */
+    line-height: 0;
 }
 
 .main-nav ul li a {
-    /* 优化 4: 文字颜色使用浅灰色 */
-    color: #ecf0f1;
+    /* 设置链接的尺寸和显示方式 */
     text-decoration: none;
-    font-size: 1.1em;
-    font-weight: 500;
-    padding: 8px 15px; /* 增加点击区域 */
-    border-radius: 4px;
-    /* 优化 5: 增加边框和背景的平滑过渡 */
-    transition: background-color 0.3s ease, color 0.3s ease, border-bottom 0.3s ease;
-    border-bottom: 2px solid transparent; /* 初始透明下划线 */
+    padding: 0;
+    display: inline-block; /* 确保是行内块级元素，避免幽灵边距 */
+    width: 120px; /* 告示牌的宽度 */
+    height: 120px; /* 告示牌的高度 */
+    /* 修正：移除焦点边框和默认边框 */
+    outline: none;
+    border: none;
+    background-color: transparent;
 }
 
-/* 优化 6: 悬停效果改为一个底部高亮线和更柔和的背景色 */
-.main-nav ul li a:hover {
-    background-color: rgba(52, 152, 219, 0.15); /* 浅蓝色背景，微透明 */
-    border-bottom: 2px solid #3498db; /* 底部高亮线，使用主题蓝 */
-    color: #ffffff; /* 悬停时文字变为纯白 */
+.sign-post {
+    width: 100%;
+    height: 100%;
+    /* 使用 /images/hanging.png 路径 */
+    background-image: url('/images/hanging.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center top;
+    display: flex;
+    /* ***** 修正点 1: 全面居中 ***** */
+    justify-content: center; /* 水平居中 */
+    align-items: center;     /* 垂直居中 */
+    /* ***************************** */
+    overflow: hidden;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    /* 修正：确保 .sign-post 自身没有边框和背景透明 */
+    border: none;
+    background-color: transparent;
+}
+
+.sign-text {
+    /* 恢复文本的显示 */
+    font-size: 0.9em;
+    line-height: 1.2; /* 恢复正常的行高 */
+    /* 精确控制文本在告示牌木板区域的位置和样式 */
+    color: #4a2e1d; /* 深棕色，模拟木刻文字 */
+    font-weight: bold;
+    display: block;
+
+    /* ***** 修正点 2: 移除固定定位，让 Flexbox 控制垂直位置 ***** */
+    position: static;
+
+    padding: 5px;
+    width: 90%;
+    text-align: center; /* ***** 修正点 3: 确保文本内容本身居中 ***** */
+    text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.5);
+    white-space: nowrap;
+    transition: color 0.2s ease, transform 0.2s ease;
+
+    /* ***** 修正点 4: 额外微调，将文字向下推一点，以匹配木牌形状 ***** */
+    transform: translateY(10px);
+}
+
+.main-nav ul li a:hover .sign-text {
+    color: #7a4b2a; /* 悬停时颜色略变浅 */
+    /* 悬停时，保持与上面相同的 translateY 偏移，并应用放大效果 */
+    transform: scale(1.05) translateY(10px);
 }
 /* ========================================= */
 
