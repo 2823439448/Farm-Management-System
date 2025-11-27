@@ -435,7 +435,8 @@ section h2 {
 /* 颜色定义 - 调整透明度 (0.7) */
 .temperature { background-color: rgba(206, 237, 255, 0.7); } /* 淡蓝色 */
 .humidity { background-color: rgba(255, 220, 220, 0.7); }    /* 淡红色 */
-.light { background-color: rgba(255, 255, 206, 0.7); }       /* 淡黄色 */
+/* ***** 修改：将 .light 替换为 .ph，并保留颜色 ***** */
+.ph { background-color: rgba(255, 255, 206, 0.7); }       /* 淡黄色 */
 
 
 .metric-box:hover {
@@ -495,6 +496,10 @@ section h2 {
 .control-item h3 {
     margin-top: 0;
     color: #34495e;
+    /* 新增：使 H3 内部的图标和文本对齐 (从上一步操作中补充) */
+    display: flex;
+    align-items: center; /* 垂直居中对齐 */
+    gap: 8px; /* 图标和文本之间的间距 */
 }
 .control-item input[type="number"] {
     width: 80px;
@@ -522,6 +527,45 @@ section h2 {
 .secondary { background-color: #e67e22; }
 .primary:hover { background-color: #2980b9; }
 .secondary:hover { background-color: #d35400; }
+
+/* =========================================
+   *** 自动浇水图标样式 (从上一步操作中补充) ***
+   ========================================= */
+.water-drop-icon {
+    display: inline-block; /* 允许设置宽度和高度 */
+    width: 24px;
+    height: 24px;
+    background-image: url('/images/water.png'); /* 假设您的 water.png 路径 */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    vertical-align: middle;
+    color: transparent;
+}
+/* ========================================= */
+
+/* =========================================
+   *** 升温加热图标样式 (从上一步操作中补充) ***
+   ========================================= */
+.fire-icon {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background-image: url('/images/fire.png'); /* 假设您的 fire.png 路径 */
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    vertical-align: middle;
+    color: transparent;
+}
+/* ========================================= */
+
 
 /* 天气面板的标题样式已经被 section h2 下面的 Greenboom 样式覆盖 */
 .weather-icon {

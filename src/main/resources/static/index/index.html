@@ -33,9 +33,9 @@
                 <h3>湿度 (%)</h3>
                 <p id="currentHumid">65</p>
             </div>
-            <div class="metric-box light">
-                <h3>光照 (lux)</h3>
-                <p id="currentLight">8000</p>
+            <div class="metric-box ph">
+                <h3>pH 值</h3>
+                <p id="currentPh">6.5</p>
             </div>
         </div>
     </section>
@@ -51,12 +51,12 @@
         <h2>设备操作控制</h2>
         <div class="controls">
             <div class="control-item">
-                <h3>💧 自动浇水</h3>
+                <h3><span class="water-drop-icon"></span> 自动浇水</h3>
                 <p>当前土壤湿度：<span id="soilMoisture">45%</span></p>
                 <button id="waterBtn" class="action-btn primary">点击浇水</button>
             </div>
             <div class="control-item">
-                <h3>🔥 升温加热</h3>
+                <h3><span class="fire-icon"></span> 升温加热</h3>
                 <p>目标温度：<input type="number" id="targetTemp" value="28" min="20" max="40"> ℃</p>
                 <button id="heatBtn" class="action-btn secondary">升温至目标</button>
             </div>
@@ -64,7 +64,7 @@
     </section>
 
     <section class="weather-panel">
-        <h2>🌤️ 农场地区天气预报</h2>
+        <h2>🌤️ 农场地区天气</h2>
         <div id="weatherInfo">
             <p>正在加载天气数据...</p>
         </div>

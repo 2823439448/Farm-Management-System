@@ -68,12 +68,14 @@ const chart = new Chart(ctx, {
 // 模拟数据生成函数
 function fetchData() {
     const now = new Date();
+    // 修正: 确保时间字符串格式正确（分:秒）
     const timeString = `${now.getMinutes() < 10 ? '0' : ''}${now.getMinutes()}:${now.getSeconds() < 10 ? '0' : ''}${now.getSeconds()}`;
 
-    // 模拟新的温度、湿度和光照值
+    // 模拟新的温度、湿度和 pH 值
     const newTemp = (Math.random() * 3 + 24).toFixed(1);
     const newHumid = (Math.random() * 10 + 60).toFixed(0);
-    const newLight = (Math.random() * 2000 + 7000).toFixed(0);
+    // ***** 修正 1: 模拟 pH 值 (例如 5.5 到 7.5 之间，保留一位小数) *****
+    const newPH = (Math.random() * 2 + 5.5).toFixed(1);
 
     // 更新图表数据
     timeLabels.push(timeString);
@@ -90,7 +92,8 @@ function fetchData() {
     // 更新实时数值显示
     document.getElementById('currentTemp').textContent = newTemp;
     document.getElementById('currentHumid').textContent = newHumid;
-    document.getElementById('currentLight').textContent = newLight;
+    // ***** 修正 2: 更改 ID 'currentLight' 为 'currentPh' *****
+    document.getElementById('currentPh').textContent = newPH;
 
     // 重新渲染图表
     chart.update();
