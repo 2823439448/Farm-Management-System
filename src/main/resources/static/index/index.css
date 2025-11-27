@@ -9,28 +9,71 @@ body {
 }
 
 header {
-    background-color: #1abc9c;
+    /* 移除旧的背景颜色 */
     color: white;
-    padding: 20px;
     text-align: center;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     /* 核心：为了定位导航栏，header需要是相对定位 */
     position: relative;
     /* 确保 header 在导航栏之下 */
     z-index: 100;
+
+    /* ***** 修正 1：强制设定高度为 80px (2x40px)，完美贴合背景方块 ***** */
+    height: 80px;
+    padding: 0; /* 移除 padding，由 height 控制高度 */
+
+    /* ***** 修正 2：使用 Flexbox 垂直居中文本，代替 padding ***** */
+    display: flex;
+    justify-content: center; /* 水平居中 */
+    align-items: center;     /* 垂直居中 */
+
+    /* ====================================================== */
+    /* ***** MC 风格背景图配置 (Beryl.png - 40x40px 方块, 2层堆叠) ***** */
+    background-image: url('/images/Beryl.png');
+    background-repeat: repeat;
+    background-size: 40px 40px;                        /* 关键：设置单个方块的尺寸 */
+    background-position: left top;
+    image-rendering: pixelated;
+    image-rendering: -moz-crisp-edges;
+    image-rendering: -webkit-optimize-contrast;
+    /* ====================================================== */
 }
 
-header h1 {
+/* 顶部 H1 替换为图片 */
+header h1.logo-image {
+    /* 移除旧的 h1 样式，现在使用背景图 */
+    margin: 0;
+
+    /* 设定图片尺寸 (根据图片内容和 header 高度 80px 调整) */
+    height: 75px; /* 增加高度以更贴近 header 的 80px */
+    width: 600px; /* **已放大图片宽度** */
+
+    /* 设置背景图片。使用 /images/title.png 路径 */
+    background-image: url('/images/title.png');
+    background-size: contain;      /* 确保图片完整显示 */
+    background-repeat: no-repeat;
+    background-position: center;   /* 图片居中 */
+
+    /* 隐藏 h1 标签内的文本内容（如果存在） */
+    text-indent: -9999px;
+    overflow: hidden;
+
+    /* 确保 h1 文本不会影响 flexbox 居中 */
+    line-height: normal;
+}
+header h1:not(.logo-image) {
+    /* 原始 h1 样式作为备用 */
     margin: 0;
     font-size: 2.2em;
+    line-height: normal;
 }
 
 /* =========================================
-   告示牌导航栏样式 (最终修正：居中和文字可见)
+   告示牌导航栏样式
    ========================================= */
 .main-nav {
     position: absolute; /* 相对于 header 定位 */
-    top: 100%; /* 初始在 header 正下方 */
+    top: 100%; /* 保持 100%，从 header 底部开始计算 */
     left: 0;
     width: 100%;
     /* 移除所有背景、阴影和内边距，实现无横条效果 */
@@ -38,7 +81,10 @@ header h1 {
 
     opacity: 0; /* 初始隐藏 */
     visibility: hidden; /* 初始隐藏 */
-    transform: translateY(-100%); /* 初始位于header上方，准备滑下 */
+
+    /* 初始位于header上方，准备滑下 */
+    transform: translateY(-100%);
+
     transition: transform 0.35s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.35s ease-out, visibility 0.35s ease-out;
     /* 确保导航栏在最上层，避免被内容遮挡 */
     z-index: 1001;
@@ -50,7 +96,8 @@ header h1 {
 header:hover .main-nav {
     opacity: 1;
     visibility: visible;
-    transform: translateY(0); /* 恢复到原位，向下滑出 */
+    /* 滑出后向上移动 12px，让告示牌挂钩顶部完美对齐 header 底部 */
+    transform: translateY(-12px);
 }
 
 .main-nav ul {
@@ -92,48 +139,58 @@ header:hover .main-nav {
     background-repeat: no-repeat;
     background-position: center top;
     display: flex;
-    /* ***** 修正点 1: 全面居中 ***** */
+    /* 全面居中 */
     justify-content: center; /* 水平居中 */
     align-items: center;     /* 垂直居中 */
-    /* ***************************** */
     overflow: hidden;
     image-rendering: pixelated;
     image-rendering: -moz-crisp-edges;
     image-rendering: -webkit-optimize-contrast;
-    /* 修正：确保 .sign-post 自身没有边框和背景透明 */
+    /* 确保 .sign-post 自身没有边框和背景透明 */
     border: none;
     background-color: transparent;
 }
 
+/* 导航栏的告示牌文字 */
 .sign-text {
-    /* 恢复文本的显示 */
-    font-size: 0.9em;
-    line-height: 1.2; /* 恢复正常的行高 */
-    /* 精确控制文本在告示牌木板区域的位置和样式 */
-    color: #4a2e1d; /* 深棕色，模拟木刻文字 */
-    font-weight: bold;
+    /* 颜色：默认黑色 */
+    color: black;
+    /* 字体大小：略微增大，更接近MC字体的视觉大小 */
+    font-size: 1.2em; /* 稍微调大字体 */
+    line-height: 1.2;
+    /* 移除加粗，原版MC字体不强调粗细 */
+    font-weight: normal;
+
+    /* 尝试使用像素字体，如果未导入则回退到等宽字体 */
+    font-family: 'Minecraft', 'Press Start 2P', 'VT323', monospace;
+    /* 禁用抗锯齿，使字体边缘更锐利，模拟像素感 */
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: grayscale;
+    font-smoothing: none;
+
+
     display: block;
 
-    /* ***** 修正点 2: 移除固定定位，让 Flexbox 控制垂直位置 ***** */
     position: static;
 
     padding: 5px;
     width: 90%;
-    text-align: center; /* ***** 修正点 3: 确保文本内容本身居中 ***** */
-    text-shadow: 1px 1px 1px rgba(255, 255, 255, 0.5);
+    text-align: center;
+    /* 移除文本阴影以获得更“扁平”的MC风格 */
+    text-shadow: none;
     white-space: nowrap;
     transition: color 0.2s ease, transform 0.2s ease;
 
-    /* ***** 修正点 4: 额外微调，将文字向下推一点，以匹配木牌形状 ***** */
+    /* 额外微调，将文字向下推一点，以匹配木牌形状 */
     transform: translateY(10px);
 }
 
 .main-nav ul li a:hover .sign-text {
-    color: #7a4b2a; /* 悬停时颜色略变浅 */
+    /* 悬停颜色：红色 */
+    color: red; /* 直接使用纯红色 */
     /* 悬停时，保持与上面相同的 translateY 偏移，并应用放大效果 */
     transform: scale(1.05) translateY(10px);
 }
-/* ========================================= */
 
 
 /* --- 核心布局 Dashboard --- */
