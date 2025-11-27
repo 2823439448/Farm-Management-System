@@ -4,14 +4,20 @@ body {
     color: #333;
     margin: 0;
     padding: 0;
+    /* 防止滚动条抖动 */
+    overflow-x: hidden;
 }
 
 header {
-    background-color: #1abc9c; /* 农场主题色 */
+    background-color: #1abc9c;
     color: white;
     padding: 20px;
     text-align: center;
     box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    /* 核心修改：为了定位导航栏，header需要是相对定位 */
+    position: relative;
+    /* 确保内容在导航栏下方 */
+    z-index: 1000;
 }
 
 header h1 {
@@ -19,53 +25,88 @@ header h1 {
     font-size: 2.2em;
 }
 
-/* style.css 关键片段 */
+/* =========================================
+   优化：导航栏样式 (改为深色/专业色调)
+   ========================================= */
+.main-nav {
+    position: absolute; /* 相对于header定位 */
+    top: 100%;          /* 初始时在header下方 */
+    left: 0;
+    width: 100%;
+    /* 优化 1: 使用深蓝灰色背景，更显专业和现代 */
+    background-color: rgba(44, 62, 80, 0.98); /* 深蓝灰色 (Dark Navy/Slate) */
+    /* 优化 2: 更柔和的阴影 */
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+    padding: 15px 0; /* 增加垂直内边距，更宽敞 */
+    opacity: 0;         /* 初始隐藏 */
+    visibility: hidden; /* 初始隐藏 */
+    /* 优化 3: 调整过渡时间和缓动函数，使其更具“质感” */
+    transform: translateY(-100%);
+    transition: transform 0.35s cubic-bezier(0.19, 1, 0.22, 1), opacity 0.35s ease-out, visibility 0.35s ease-out;
+    /* 确保导航栏内容在最上层 */
+    z-index: 999;
+    text-align: center; /* 确保链接居中 */
+}
 
-/* 重新定义 Grid 布局 */
+/* 鼠标悬停在header上时，导航栏显示 */
+header:hover .main-nav {
+    opacity: 1;         /* 显示 */
+    visibility: visible; /* 显示 */
+    transform: translateY(0); /* 恢复到原位，向下滑出 */
+}
+
+.main-nav ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex; /* 横向排列 */
+    justify-content: center; /* 居中显示 */
+    gap: 40px; /* 增加链接之间的间距 */
+}
+
+.main-nav ul li a {
+    /* 优化 4: 文字颜色使用浅灰色 */
+    color: #ecf0f1;
+    text-decoration: none;
+    font-size: 1.1em;
+    font-weight: 500;
+    padding: 8px 15px; /* 增加点击区域 */
+    border-radius: 4px;
+    /* 优化 5: 增加边框和背景的平滑过渡 */
+    transition: background-color 0.3s ease, color 0.3s ease, border-bottom 0.3s ease;
+    border-bottom: 2px solid transparent; /* 初始透明下划线 */
+}
+
+/* 优化 6: 悬停效果改为一个底部高亮线和更柔和的背景色 */
+.main-nav ul li a:hover {
+    background-color: rgba(52, 152, 219, 0.15); /* 浅蓝色背景，微透明 */
+    border-bottom: 2px solid #3498db; /* 底部高亮线，使用主题蓝 */
+    color: #ffffff; /* 悬停时文字变为纯白 */
+}
+/* ========================================= */
+
+
+/* --- 核心布局 Dashboard --- */
 .dashboard {
     display: grid;
-    /* 定义两列：左侧 1 份，右侧 2 份 */
     grid-template-columns: 1fr 2fr;
-    /* 定义两行：
-       第一行：给左侧的“实时环境状态” 和 右侧的“数据图表”
-       第二行：给左侧的“设备操作控制” 和 右侧的“天气预报”
-    */
-    grid-template-rows: auto 1fr; /* 这里是关键修改 */
+    grid-template-rows: auto 1fr;
     gap: 20px;
     padding: 20px;
     max-width: 1200px;
     margin: 20px auto;
 }
 
-/* 区域布局调整 */
-.status-panel { grid-area: 1 / 1 / 2 / 2; } /* 左上角：实时环境状态 */
-.control-panel { grid-area: 2 / 1 / 3 / 2; } /* 左下角：设备操作控制 */
-
-/* 右侧大图表，占据第一行的右侧区域 */
-.chart-panel { grid-area: 1 / 2 / 2 / 3; }
-/* 天气预报面板，现在占据第二行的右侧区域 */
-.weather-panel { grid-area: 2 / 2 / 3 / 3; } /* <-- 这里是关键修改，现在它在右下角了 */
-
-/* 其他 CSS 样式保持不变 */
-/* ... (其余的样式代码，包括实时数值、图表、按钮、天气面板的细节样式等) */
-
-/* 响应式设计 - 小屏幕调整 */
-@media (max-width: 768px) {
-    .dashboard {
-        grid-template-columns: 1fr; /* 单列布局 */
-        grid-template-rows: auto auto auto auto; /* 所有模块依次堆叠 */
-    }
-    /* 在小屏幕上，所有模块都取消特定网格区域，按顺序排列 */
-    .status-panel, .chart-panel, .control-panel, .weather-panel {
-        grid-area: auto !important;
-    }
-    .metrics {
-        flex-direction: column; /* 实时数据显示改为纵向堆叠 */
-    }
-    .metric-box {
-        width: 100%;
-    }
+/* 区域布局定义 */
+.status-panel {
+    grid-area: 1 / 1 / 2 / 2;
+    display: flex;
+    flex-direction: column;
 }
+.chart-panel { grid-area: 1 / 2 / 2 / 3; }
+.control-panel { grid-area: 2 / 1 / 3 / 2; }
+.weather-panel { grid-area: 2 / 2 / 3 / 3; }
+
 /* 通用面板样式 */
 section {
     background-color: white;
@@ -77,50 +118,63 @@ section {
 section h2 {
     color: #2c3e50;
     margin-top: 0;
-    margin-bottom: 15px;
+    margin-bottom: 10px;
     padding-bottom: 10px;
     border-bottom: 1px solid #eee;
+    flex-shrink: 0;
 }
 
-
-
-/* 实时数值 */
+/* 实时数值样式 (纵向堆叠 + 防溢出) */
 .metrics {
     display: flex;
-    justify-content: space-around;
+    flex-direction: column;
     gap: 15px;
+    flex: 1;
+    width: 100%;
 }
+
 .metric-box {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
     text-align: center;
-    padding: 15px;
+    padding: 5px;
     border-radius: 8px;
-    flex-grow: 1;
+    box-sizing: border-box;
     transition: transform 0.2s ease-in-out;
+    min-height: 0;
 }
+
 .metric-box:hover {
-    transform: translateY(-5px);
+    transform: translateY(-2px);
 }
-.temperature { background-color: #ffeded; border: 1px solid #ff9999; color: #d9534f;}
-.humidity { background-color: #e6f7ff; border: 1px solid #99c2ff; color: #337ab7;}
-.light { background-color: #fffbe6; border: 1px solid #ffe799; color: #f0ad4e;} /* 新增光照样式 */
+
+/* 颜色定义（已交换温湿度颜色） */
+.temperature { background-color: #e6f7ff; border: 1px solid #99c2ff; color: #337ab7;} /* 温度现在是蓝色 */
+.humidity { background-color: #ffeded; border: 1px solid #ff9999; color: #d9534f;}    /* 湿度现在是红色 */
+.light { background-color: #fffbe6; border: 1px solid #ffe799; color: #f0ad4e;}       /* 光照保持不变 */
+
 .metric-box h3 {
-    margin: 0 0 10px 0;
-    font-size: 1.1em;
+    margin: 0 0 5px 0;
+    font-size: 1em;
     color: #666;
 }
 .metric-box p {
-    font-size: 2.5em;
+    font-size: 2em;
     font-weight: bold;
-    margin: 5px 0 0 0;
+    margin: 0;
 }
 
 /* 图表容器 */
 .chart-container {
-    height: 350px; /* 控制图表高度 */
+    height: 350px;
     width: 100%;
 }
 
-/* 交互按钮 */
+/* 交互按钮区域 */
 .controls {
     display: flex;
     flex-direction: column;
@@ -153,17 +207,17 @@ section h2 {
     font-size: 1em;
     transition: background-color 0.3s ease, transform 0.2s ease;
     margin-top: 10px;
-    width: 100%; /* 让按钮宽度自适应 */
+    width: 100%;
 }
 .action-btn:active {
     transform: translateY(1px);
 }
-.primary { background-color: #3498db; } /* 浇水 */
-.secondary { background-color: #e67e22; } /* 升温 */
+.primary { background-color: #3498db; }
+.secondary { background-color: #e67e22; }
 .primary:hover { background-color: #2980b9; }
 .secondary:hover { background-color: #d35400; }
 
-/* 天气面板样式 */
+/* 天气面板 */
 .weather-panel h2 {
     margin-top: 0;
     color: #3498db;
@@ -187,7 +241,7 @@ section h2 {
     margin-top: 15px;
 }
 .location-input label {
-    align-self: center; /* 垂直居中 */
+    align-self: center;
     font-weight: bold;
     color: #555;
 }
@@ -204,25 +258,22 @@ section h2 {
     padding: 8px 15px;
     border-radius: 5px;
     cursor: pointer;
-    white-space: nowrap; /* 防止按钮文本换行 */
+    white-space: nowrap;
 }
 #getWeatherBtn:hover {
     background-color: #e67e22;
 }
 
-/* 响应式设计 - 小屏幕调整 */
+/* 响应式设计 */
 @media (max-width: 768px) {
     .dashboard {
-        grid-template-columns: 1fr; /* 单列布局 */
-        grid-template-rows: auto auto auto auto; /* 所有模块依次堆叠 */
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
     }
     .status-panel, .chart-panel, .control-panel, .weather-panel {
-        grid-area: auto !important; /* 取消特定网格区域，按顺序排列 */
+        grid-area: auto !important;
     }
-    .metrics {
-        flex-direction: column; /* 实时数据显示改为纵向堆叠 */
-    }
-    .metric-box {
-        width: 100%;
+    .status-panel {
+        height: auto;
     }
 }
