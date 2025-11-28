@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minecraft 登录</title>
+    <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+
+    <style>
+        /* 1. 基础样式：实现全屏背景 */
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #78a7ff;
+
+            /* 关键修正：图片路径改为 /images/login.png */
+            background-image: url('/images/login.png');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+            overflow: hidden;
+        }
+
+        /* 3. 表单定位：精确地定位到木牌的书写区域 */
+        #login-form {
+            position: relative;
+            /* 保持居中定位，根据您的要求保留 -50px */
+            top: -30px;
+            width: 600px;
+            left: 60px;/*右边移动*/
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 4. Minecraft 字体样式 (标签使用此样式) */
+        .minecraft-font {
+            font-family: 'Press Start 2P', monospace;
+            color: black;
+            /* 保持字体大小一致 */
+            font-size: 50px;
+        }
+
+        /* 5. 输入行样式 */
+        .input-line {
+            display: flex;
+            align-items: flex-end;
+            /* 增加行间距，并为移除确认按钮后的空间做调整 */
+            margin-bottom: 80px;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .input-line label {
+            white-space: nowrap;
+            padding-right: 15px;
+        }
+
+        /* 6. 融入式输入框 */
+        .input-field {
+            flex-grow: 0;
+            width: 80%;
+            border: none;
+            outline: none;
+            background: transparent;
+
+            /* 关键：加粗的黑线下划线 */
+            border-bottom: 4px solid black;
+
+            color: black;
+            padding: 0 0 5px 0;
+            margin-left: 0;
+            font-family: 'Press Start 2P', monospace;
+            /* 保持字体大小一致 */
+            font-size: 50px;
+            text-align: left;
+            line-height: 1.2;
+        }
+
+        /* 修复输入框聚焦时和自动填充时的白色背景 */
+        .input-field:focus {
+            background-color: transparent !important;
+            color: black;
+            border-bottom: 4px solid black;
+            outline: none;
+            box-shadow: none;
+        }
+        .input-field:-webkit-autofill,
+        .input-field:-webkit-autofill:hover,
+        .input-field:-webkit-autofill:focus,
+        .input-field:-webkit-autofill:active {
+            -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+            -webkit-text-fill-color: black !important;
+            transition: background-color 5000s ease-in-out 0s;
+        }
+    </style>
+</head>
+<body>
+
+<form id="login-form" class="minecraft-font">
+
+    <div class="input-line">
+        <label for="username"></label>
+        <input type="text" id="username" name="username" class="input-field" required>
+    </div>
+
+    <div class="input-line">
+        <label for="password"></label>
+        <input type="password" id="password" name="password" class="input-field" required>
+    </div>
+
+</form>
+
+<script>
+    // 登录处理函数
+    function handleLogin() {
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+
+        if (username && password) {
+            alert(`尝试登录...\n用户名: ${username}\n密码: ${password}`);
+        } else {
+            alert('请输入用户名和密码！');
+        }
+    }
+
+    // 键盘回车事件 (只保留回车确认)
+    document.getElementById('login-form').addEventListener('keydown', function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            handleLogin();
+        }
+    });
+</script>
+
+</body>
+</html>
