@@ -1,3 +1,54 @@
+// --- 音乐播放控制逻辑 (从 index.html 移动过来并修复自动播放问题) ---
+const music = document.getElementById('mcMusic');
+const musicBtn = document.getElementById('musicToggleBtn');
+let isPlaying = false;
+
+// 播放尝试函数：尝试播放音乐，并更新按钮文本
+function tryPlay() {
+    // 确保音频元素存在且加载
+    if (!music) return;
+    const playPromise = music.play();
+
+    if (playPromise !== undefined) {
+        playPromise.then(() => {
+            // 播放成功
+            console.log("播放成功。");
+            // isPlaying 状态和按钮文本由 'playing' 事件监听器更新
+        }).catch(error => {
+            // 播放失败 (通常是浏览器阻止自动播放)
+            console.log("自动播放被阻止:", error);
+            isPlaying = false;
+            musicBtn.textContent = '🎶 播放音乐';
+        });
+    }
+}
+
+// 监听音乐开始播放事件，同步状态和按钮文本
+if (music) {
+    music.addEventListener('playing', () => {
+        isPlaying = true;
+        musicBtn.textContent = '⏸ 暂停音乐';
+    });
+
+    // 监听音乐暂停事件，同步状态和按钮文本
+    music.addEventListener('pause', () => {
+        isPlaying = false;
+        musicBtn.textContent = '🎶 播放音乐';
+    });
+
+    // 监听音乐控制按钮的点击事件 (用户交互后才能播放)
+    musicBtn.addEventListener('click', () => {
+        if (isPlaying) {
+            music.pause();
+        } else {
+            tryPlay(); // 在用户点击后触发播放，解决了浏览器阻止问题
+        }
+    });
+}
+// 注意：已移除 tryPlay(); 的自动调用，音乐将从用户点击按钮开始播放
+// --- 音乐播放控制逻辑结束 ---
+
+
 const MAX_DATA_POINTS = 60; // 存储60分钟（1小时）的数据
 
 // 模拟实时数据

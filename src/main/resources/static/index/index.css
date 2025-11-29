@@ -1,3 +1,20 @@
+/* 音乐播放按钮的样式 (从 index.html 的 <style> 移动过来) */
+#musicToggleBtn {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 2000;
+    padding: 5px 10px;
+    background-color: #2ecc71;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    /* 确保按钮始终可见 */
+    display: block;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: #333;
@@ -306,18 +323,24 @@ section h2 {
     position: relative;
     z-index: 10;
 
-    /* 针对 status-panel 标题的精确调整 (保持上移和黑色文字) */
+    /* 针对 status-panel 标题的精确调整 */
     .status-panel & {
-        padding-top: 5px; /* 上移 */
-        padding-bottom: 10px;
-        margin-bottom: 5px;
+        /* 1. 垂直位置微调：将标题向下微调 5px */
+        padding-top: 0px; /* 修正回 5px，以便横线重新出现并调整位置 */
+
+        /* 2. 核心修正：减小 padding-bottom 使横线紧贴标题文字 */
+        padding-bottom: 0px; /* 将 0px 修正回 5px，使横线靠近标题 */
+
+        /* 3. 调整横线与下方容器 (.metrics) 的间距 */
+        margin-bottom: 45px; /* 修正回 20px，增加横线与下方容器的距离 */
+
+        /* 4. 横线样式：保持可见 */
         border-bottom: 2px solid #663e2d;
 
         /* 标题字体改为纯黑且移除阴影，确保文字可见 */
         color: #000;
         text-shadow: none;
     }
-
     /* 设备操作控制标题颜色修正 (TNT背景) */
     .control-panel & {
         color: #fff; /* 假设 TNT 背景较深，标题改为白色 */
@@ -599,18 +622,4 @@ section h2 {
 }
 #getWeatherBtn:hover {
     background-color: #e67e22;
-}
-
-/* 响应式设计 */
-@media (max-width: 768px) {
-    .dashboard {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto;
-    }
-    .status-panel, .chart-panel, .control-panel, .weather-panel {
-        grid-area: auto !important;
-    }
-    .status-panel {
-        height: auto;
-    }
 }
