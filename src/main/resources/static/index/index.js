@@ -1,54 +1,3 @@
-// --- 音乐播放控制逻辑 (从 index.html 移动过来并修复自动播放问题) ---
-const music = document.getElementById('mcMusic');
-const musicBtn = document.getElementById('musicToggleBtn');
-let isPlaying = false;
-
-// 播放尝试函数：尝试播放音乐，并更新按钮文本
-function tryPlay() {
-    // 确保音频元素存在且加载
-    if (!music) return;
-    const playPromise = music.play();
-
-    if (playPromise !== undefined) {
-        playPromise.then(() => {
-            // 播放成功
-            console.log("播放成功。");
-            // isPlaying 状态和按钮文本由 'playing' 事件监听器更新
-        }).catch(error => {
-            // 播放失败 (通常是浏览器阻止自动播放)
-            console.log("自动播放被阻止:", error);
-            isPlaying = false;
-            musicBtn.textContent = '🎶 播放音乐';
-        });
-    }
-}
-
-// 监听音乐开始播放事件，同步状态和按钮文本
-if (music) {
-    music.addEventListener('playing', () => {
-        isPlaying = true;
-        musicBtn.textContent = '⏸ 暂停音乐';
-    });
-
-    // 监听音乐暂停事件，同步状态和按钮文本
-    music.addEventListener('pause', () => {
-        isPlaying = false;
-        musicBtn.textContent = '🎶 播放音乐';
-    });
-
-    // 监听音乐控制按钮的点击事件 (用户交互后才能播放)
-    musicBtn.addEventListener('click', () => {
-        if (isPlaying) {
-            music.pause();
-        } else {
-            tryPlay(); // 在用户点击后触发播放，解决了浏览器阻止问题
-        }
-    });
-}
-// 注意：已移除 tryPlay(); 的自动调用，音乐将从用户点击按钮开始播放
-// --- 音乐播放控制逻辑结束 ---
-
-
 const MAX_DATA_POINTS = 60; // 存储60分钟（1小时）的数据
 
 // 模拟实时数据
@@ -240,3 +189,49 @@ document.getElementById('getWeatherBtn').addEventListener('click', () => {
     const city = document.getElementById('cityInput').value.trim();
     if (city) fetchWeather(city);
 });
+
+
+// --- 新增: 接收 AI 指令并自动执行升温操作 ---
+// 此逻辑在所有 DOM 和 Chart 初始化完成后执行
+
+function checkAICommand() {
+    // 获取 chat.html 中存储的值和标志
+    const aiSetTemp = localStorage.getItem("aiSetTemp");
+    const aiAutoHeat = localStorage.getItem("aiAutoHeat");
+
+    // 检查是否有 AI 设定的温度和自动加热的标志
+    if (aiSetTemp && aiAutoHeat === "true") {
+
+        // 1. 设置目标温度输入框的值
+        const targetTempInput = document.getElementById('targetTemp');
+        // 确保值有效
+        if (!isNaN(parseFloat(aiSetTemp))) {
+            targetTempInput.value = parseFloat(aiSetTemp);
+        } else {
+            console.error("AI 设定的温度值无效:", aiSetTemp);
+            // 即使值无效，也要清理标志，防止无限循环
+            localStorage.removeItem("aiSetTemp");
+            localStorage.removeItem("aiAutoHeat");
+            return;
+        }
+
+        // 2. 模拟点击“升温至目标”按钮
+        const heatBtn = document.getElementById('heatBtn');
+
+        // 延迟执行点击和清除操作，给用户一个缓冲时间
+        setTimeout(() => {
+            // 触发点击事件，执行 'heatBtn' 的事件监听器
+            heatBtn.click();
+
+            // 3. 清除 localStorage 中的值和标志，防止重复执行
+            localStorage.removeItem("aiSetTemp");
+            localStorage.removeItem("aiAutoHeat");
+
+            console.log(`AI助手指令已执行：目标温度设置为 ${aiSetTemp}℃ 并发送升温指令。`);
+
+        }, 500); // 延迟 0.5 秒
+    }
+}
+
+// 页面加载完成后立即检查 AI 指令
+checkAICommand();

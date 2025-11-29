@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DeepSeek Chat</title>
+    <title>AI 智能农场助手</title>
 
     <style>
         body {
@@ -39,16 +39,30 @@
             padding: 10px;
             border-radius: 8px;
             max-width: 80%;
+            word-wrap: break-word;
         }
 
         .msg.user {
             background: #d1eaff;
-            align-self: flex-end;
             text-align: right;
+            margin-left: auto;
         }
 
         .msg.bot {
             background: #e7e7e7;
+        }
+
+        /* 确保确认按钮在 bot 消息中显示正常 */
+        .msg.bot .confirm-btn {
+            background: #2ecc71;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            margin-top: 10px;
+            cursor: pointer;
+            display: block; /* 独占一行 */
+            width: fit-content;
         }
 
         .input-area {
@@ -74,16 +88,37 @@
             font-size: 16px;
             cursor: pointer;
         }
-
         button:hover {
             background: #45a049;
+        }
+
+        /* 提示词按钮 */
+        .suggestions {
+            margin: 10px 0;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .suggestions button {
+            background: #2196F3;
+            border-radius: 20px;
+            padding: 8px 15px;
+        }
+        .suggestions button:hover {
+            background: #1976D2;
         }
     </style>
 </head>
 
 <body>
 <div id="app">
-    <h2>🤖 DeepSeek Chat</h2>
+    <h2>🌱 智能农场 AI 助手</h2>
+
+    <div class="suggestions">
+        <button onclick="sendMsg('土豆需要什么温度湿度？')">土豆温湿度</button>
+        <button onclick="sendMsg('草莓需要什么温度湿度？')">草莓温湿度</button>
+        <button onclick="sendMsg('黄瓜的最佳温湿度是多少？')">黄瓜温湿度</button>
+    </div>
 
     <div class="chat-box" id="chatBox"></div>
 
@@ -105,24 +140,70 @@
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    function sendMsg() {
-        const msg = input.value.trim();
+    function sendMsg(text = null) {
+        const msg = text || input.value.trim();
         if (!msg) return;
 
         addMsg(msg, "user");
         input.value = "";
 
+        // 使用真实的 API 调用
         fetch("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "text/plain" },
             body: msg
         })
             .then(res => res.text())
-            .then(text => addMsg(text, "bot"))
+            .then(answer => {
+                addMsg(answer, "bot");
+                // ⚠️ 关键修正：调用新的处理函数，它将负责解析并添加确认按钮
+                handleBotResponse(answer);
+            })
             .catch(e => addMsg("请求失败：" + e, "bot"));
     }
 
-    // 回车发送
+    // 新增：处理 Bot 回复，解析温湿度范围，并显示确认按钮
+    function handleBotResponse(answer) {
+        // AI 后端返回格式为 "温度: XX-YY℃\n湿度: ZZ%"
+        // 匹配：温度: 后面跟一个空格或没有，再跟一个数字范围（可能带小数），再跟 ℃
+        const tempRangeMatch = answer.match(/温度:\s*(\d+(\.\d+)?)\s*-\s*(\d+(\.\d+)?)\s*℃/);
+
+        if (!tempRangeMatch) return;   // 没解析到温度范围就不做后续操作
+
+        // 提取范围的上限和下限
+        // tempRangeMatch[1] 是第一个捕获组（最小值），tempRangeMatch[3] 是第二个（最大值）
+        const minTemp = parseFloat(tempRangeMatch[1]);
+        const maxTemp = parseFloat(tempRangeMatch[3]);
+
+        // 提取一个合适的单一目标温度：取上限作为自动设置的目标
+        const temp = maxTemp.toFixed(1);
+
+        // 1. 在聊天框中添加确认提示和按钮
+        const confirmMsg = document.createElement("div");
+        confirmMsg.className = "msg bot";
+        confirmMsg.innerHTML = `
+            <p>检测到作物最佳温湿度建议。</p>
+            <p>您想让 **AI 助手自动设置目标温度为 ${temp}℃** (取建议范围的上限) 并发送升温指令吗？</p>
+            <button class="confirm-btn" onclick="confirmAndRedirect('${temp}')">
+                ✅ 确认自动设置并升温
+            </button>
+        `;
+        chatBox.appendChild(confirmMsg);
+        chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    // 用户点击确认按钮后的操作
+    function confirmAndRedirect(temp) {
+        // 1. 存储 AI 推荐的温度值
+        localStorage.setItem("aiSetTemp", temp);
+
+        // 2. 存储一个标志，告诉 index.html 页面需要执行升温操作
+        localStorage.setItem("aiAutoHeat", "true");
+
+        // 3. 执行跳转
+        window.location.href = "/index/index.html";
+    }
+
     input.addEventListener("keydown", e => {
         if (e.key === "Enter") sendMsg();
     });

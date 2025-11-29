@@ -6,6 +6,24 @@
     <title>智能农场环境监控系统</title>
     <link rel="stylesheet" href="index.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* 音乐播放按钮的样式 */
+        #musicToggleBtn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            padding: 5px 10px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            /* 确保按钮始终可见 */
+            display: block;
+        }
+    </style>
 </head>
 <body>
 <header>
@@ -82,6 +100,56 @@
     <source src="/music/mc.mp3" type="audio/mpeg">
     您的浏览器不支持 HTML5 audio 标签。
 </audio>
+
+<script>
+    const music = document.getElementById('mcMusic');
+    const musicBtn = document.getElementById('musicToggleBtn');
+    let isPlaying = false; // 初始状态为未播放
+
+    // 播放尝试函数：尝试播放音乐，并更新按钮文本
+    function tryPlay() {
+        const playPromise = music.play();
+
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                // 播放成功
+                console.log("播放成功。");
+                // isPlaying 状态和按钮文本由 'playing' 事件监听器更新
+            }).catch(error => {
+                // 播放失败 (通常是浏览器阻止自动播放)
+                console.log("播放被阻止:", error);
+                isPlaying = false;
+                musicBtn.textContent = '🎶 播放音乐';
+            });
+        }
+    }
+
+    // 监听音乐开始播放事件，同步状态和按钮文本
+    music.addEventListener('playing', () => {
+        isPlaying = true;
+        musicBtn.textContent = '⏸ 暂停音乐';
+    });
+
+    // 监听音乐暂停事件，同步状态和按钮文本
+    music.addEventListener('pause', () => {
+        isPlaying = false;
+        musicBtn.textContent = '🎶 播放音乐';
+    });
+
+    // 1. 移除网页加载完成后，立即尝试播放的代码，实现手动控制
+    // tryPlay();
+
+    // 2. 监听音乐控制按钮的点击事件 (这是主要的控制逻辑)
+    musicBtn.addEventListener('click', () => {
+        if (isPlaying) {
+            music.pause();
+            // 状态和按钮文本由 'pause' 事件监听器更新
+        } else {
+            tryPlay();
+        }
+    });
+
+</script>
 
 <script src="index.js"></script>
 </body>
