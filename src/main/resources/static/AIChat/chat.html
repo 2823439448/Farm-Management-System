@@ -8,7 +8,13 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: #f2f2f2;
+            /* 添加背景图片 */
+            background-image: url('/images/AIbackground.png');
+            background-repeat: no-repeat;
+            background-position: left bottom; /* 图片从左下角开始 */
+            background-size: 100% auto; /* 宽度覆盖整个视口，高度自适应 */
+            background-attachment: fixed; /* 确保背景固定在窗口 */
+            background-color: #f2f2f2;
             margin: 0;
             padding: 0;
         }
@@ -20,13 +26,22 @@
             padding: 20px;
         }
 
-        h2 {
+        .header {
             text-align: center;
             color: #333;
+            padding: 10px 0;
+            font-size: 1.5em;
+            font-weight: bold;
+        }
+        .header img {
+            height: 30px;
+            vertical-align: middle;
+            margin-right: 10px;
         }
 
         .chat-box {
-            background: #fff;
+            /* 将背景色设置为半透明 (rgba: 255, 255, 255, 0.9) */
+            background: rgba(255, 255, 255, 0.9);
             border-radius: 10px;
             padding: 20px;
             height: 500px;
@@ -34,132 +49,257 @@
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
 
-        .msg {
+        /* --- 消息基础样式 --- */
+        .msg-container {
+            display: flex; /* 启用 Flexbox 以支持头像 */
             margin-bottom: 15px;
+        }
+
+        .msg {
             padding: 10px;
             border-radius: 8px;
-            max-width: 80%;
+            max-width: 70%; /* 留出头像和空间 */
             word-wrap: break-word;
+            position: relative;
+        }
+
+        /* --- 头像样式 --- */
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%; /* 圆形头像 */
+            object-fit: cover;
+            flex-shrink: 0; /* 防止头像被压缩 */
+        }
+
+        /* --- 用户消息 (右侧) --- */
+        .msg-container.user {
+            justify-content: flex-end; /* 靠右对齐 */
         }
 
         .msg.user {
-            background: #d1eaff;
-            text-align: right;
-            margin-left: auto;
+            /* 保持原有的浅绿色或设置更深的绿色 */
+            background: #d9f7be; /* 浅绿色 */
+            color: #333;
+            order: 2; /* 让消息体在右侧 */
+        }
+
+        .avatar.user-avatar {
+            margin-left: 10px;
+            order: 3;
+        }
+
+        /* --- 机器人消息 (左侧) --- */
+        .msg-container.bot {
+            justify-content: flex-start; /* 靠左对齐 */
         }
 
         .msg.bot {
-            background: #e7e7e7;
+            /* 修改 START: 机器人消息气泡改为蓝色系 */
+            background: #b3e5fc; /* 浅蓝色 */
+            color: #333;
+            /* 修改 END */
+            order: 2; /* 让消息体在右侧 */
         }
 
-        /* 确保确认按钮在 bot 消息中显示正常 */
-        .msg.bot .confirm-btn {
-            background: #2ecc71;
+        .avatar.bot-avatar {
+            margin-right: 10px;
+            order: 1; /* 让头像在左侧 */
+        }
+
+        /* --- 消息气泡内的特定元素样式 --- */
+        .msg.bot p {
+            margin: 0;
+        }
+
+        .msg.bot button {
+            /* 修改 START: 按钮背景颜色改为蓝色系 */
+            background-color: #007bff; /* 蓝色按钮 */
             color: white;
+            /* 修改 END */
             border: none;
             padding: 8px 15px;
-            border-radius: 5px;
             margin-top: 10px;
+            border-radius: 5px;
             cursor: pointer;
-            display: block; /* 独占一行 */
+            font-weight: bold;
+            display: block;
             width: fit-content;
         }
 
+        .msg.bot button:hover {
+            /* 修改 START: 按钮悬停颜色改为深蓝色系 */
+            background-color: #0056b3;
+            /* 修改 END */
+        }
+
+        /* --- 输入框和发送按钮 --- */
         .input-area {
-            margin-top: 15px;
             display: flex;
-            gap: 10px;
+            margin-top: 20px;
         }
 
-        input {
-            flex: 1;
-            padding: 12px;
-            border-radius: 8px;
-            border: 1px solid #aaa;
+        #userInput {
+            flex-grow: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
             font-size: 16px;
         }
 
-        button {
-            padding: 12px 20px;
-            border: none;
-            background: #4CAF50;
+        #sendBtn {
+            padding: 10px 20px;
+            margin-left: 10px;
+            background-color: #28a745;
             color: white;
-            border-radius: 8px;
-            font-size: 16px;
+            border: none;
+            border-radius: 5px;
             cursor: pointer;
-        }
-        button:hover {
-            background: #45a049;
+            font-size: 16px;
         }
 
-        /* 提示词按钮 */
-        .suggestions {
-            margin: 10px 0;
+        #sendBtn:hover {
+            background-color: #218838;
+        }
+
+        /* --- 快捷按钮样式 --- */
+        .quick-actions {
             display: flex;
+            justify-content: center;
             gap: 10px;
-            flex-wrap: wrap;
+            padding: 10px 0;
+            margin-bottom: 10px;
         }
-        .suggestions button {
-            background: #2196F3;
-            border-radius: 20px;
+
+        .action-btn {
             padding: 8px 15px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            transition: background-color 0.3s;
         }
-        .suggestions button:hover {
-            background: #1976D2;
+
+        /* 修改：将按钮颜色改为黄色 */
+        .action-btn.yellow {
+            background-color: #ffc107; /* 黄色 */
+            color: #333;
         }
+
+        .action-btn.yellow:hover {
+            background-color: #e0a800;
+        }
+
+        /* 原来的蓝色按钮（如果不需要可以删除） */
+        .action-btn.blue {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .action-btn.blue:hover {
+            background-color: #0056b3;
+        }
+
     </style>
 </head>
-
 <body>
 <div id="app">
-    <h2>🌱 智能农场 AI 助手</h2>
-
-    <div class="suggestions">
-        <button onclick="sendMsg('土豆需要什么温度湿度？')">土豆温湿度</button>
-        <button onclick="sendMsg('草莓需要什么温度湿度？')">草莓温湿度</button>
-        <button onclick="sendMsg('黄瓜的最佳温湿度是多少？')">黄瓜温湿度</button>
+    <div class="header">
+        <img src="/images/villager.png" alt="Logo">
+        智能农场 AI 助手
     </div>
 
-    <div class="chat-box" id="chatBox"></div>
+    <div class="quick-actions">
+        <button class="action-btn yellow" onclick="quickAction('土豆温湿度')">土豆温湿度</button>
+        <button class="action-btn yellow" onclick="quickAction('猕猴桃温湿度')">猕猴桃温湿度</button>
+        <button class="action-btn yellow" onclick="quickAction('小麦温湿度')">小麦温湿度</button>
+    </div>
+
+    <div class="chat-box" id="chatBox">
+    </div>
 
     <div class="input-area">
-        <input id="msgInput" type="text" placeholder="请输入你的消息..." />
-        <button onclick="sendMsg()">发送</button>
+        <input type="text" id="userInput" placeholder="请输入您的..." />
+        <button id="sendBtn" onclick="sendMessage()">发送</button>
     </div>
 </div>
 
 <script>
-    const chatBox = document.getElementById("chatBox");
-    const input = document.getElementById("msgInput");
+    const chatBox = document.getElementById('chatBox');
+    const userInput = document.getElementById('userInput');
+    const botAvatarUrl = '/images/villager.png'; // AI 助手的头像路径
+    const userAvatarUrl = '/images/user.png'; // 假设用户头像的路径，如果不存在请自行添加一个'
 
-    function addMsg(text, sender) {
-        const div = document.createElement("div");
-        div.className = "msg " + sender;
-        div.innerText = text;
-        chatBox.appendChild(div);
-        chatBox.scrollTop = chatBox.scrollHeight;
+    // 核心函数：在聊天框中添加消息
+    function addMessage(sender, content, isHtml = false) {
+        const container = document.createElement("div");
+        const message = document.createElement("div");
+        const avatar = document.createElement("img");
+
+        container.className = `msg-container ${sender}`;
+        message.className = `msg ${sender}`;
+        avatar.className = `avatar ${sender}-avatar`;
+
+        if (sender === 'user') {
+            avatar.src = userAvatarUrl;
+            avatar.alt = "User Avatar";
+        } else { // bot
+            avatar.src = botAvatarUrl;
+            avatar.alt = "AI Avatar";
+        }
+
+        if (isHtml) {
+            message.innerHTML = content;
+        } else {
+            // 将 \n 替换为 <br> 以支持多行文本，并将内容包装在 <p> 标签中
+            const htmlContent = content.split('\n').map(line => `<p>${line.trim()}</p>`).join('');
+            message.innerHTML = htmlContent;
+        }
+
+        if (sender === 'user') {
+            // 用户消息: 消息体 -> 头像
+            container.appendChild(message);
+            container.appendChild(avatar);
+        } else { // bot
+            // 机器人消息: 头像 -> 消息体
+            container.appendChild(avatar);
+            container.appendChild(message);
+        }
+
+        chatBox.appendChild(container);
+        chatBox.scrollTop = chatBox.scrollHeight; // 滚动到底部
     }
 
-    function sendMsg(text = null) {
-        const msg = text || input.value.trim();
-        if (!msg) return;
+    // --------------------------------------------------------
+    // ** 新的真实 AI 回复逻辑 (替换原 getBotResponse) **
+    // --------------------------------------------------------
 
-        addMsg(msg, "user");
-        input.value = "";
+    // 发送消息函数 (使用 fetch API)
+    function sendMessage(text = null) {
+        // 使用 text 参数或从 userInput 中获取消息
+        const message = text || userInput.value.trim();
+        if (message === "") return;
 
-        // 使用真实的 API 调用
+        // 1. 添加用户消息
+        addMessage('user', message);
+        userInput.value = ""; // 清空输入框
+
+        // 2. 使用真实的 API 调用
         fetch("/api/chat", {
             method: "POST",
             headers: { "Content-Type": "text/plain" },
-            body: msg
+            body: message // 发送用户消息
         })
             .then(res => res.text())
             .then(answer => {
-                addMsg(answer, "bot");
-                // ⚠️ 关键修正：调用新的处理函数，它将负责解析并添加确认按钮
+                // 3. 添加 AI 助手的基本回复 (使用原 addMessage 函数)
+                addMessage('bot', answer);
+
+                // 4. 调用新的处理函数，它将负责解析并添加确认按钮
                 handleBotResponse(answer);
             })
-            .catch(e => addMsg("请求失败：" + e, "bot"));
+            .catch(e => addMessage("bot", "请求失败：" + e)); // 错误处理也使用 addMessage
     }
 
     // 新增：处理 Bot 回复，解析温湿度范围，并显示确认按钮
@@ -172,42 +312,68 @@
 
         // 提取范围的上限和下限
         // tempRangeMatch[1] 是第一个捕获组（最小值），tempRangeMatch[3] 是第二个（最大值）
-        const minTemp = parseFloat(tempRangeMatch[1]);
+        // 确保使用 maxTemp 的值作为目标温度
         const maxTemp = parseFloat(tempRangeMatch[3]);
 
         // 提取一个合适的单一目标温度：取上限作为自动设置的目标
         const temp = maxTemp.toFixed(1);
 
         // 1. 在聊天框中添加确认提示和按钮
-        const confirmMsg = document.createElement("div");
-        confirmMsg.className = "msg bot";
-        confirmMsg.innerHTML = `
+        const confirmMsgContent = `
             <p>检测到作物最佳温湿度建议。</p>
             <p>您想让 **AI 助手自动设置目标温度为 ${temp}℃** (取建议范围的上限) 并发送升温指令吗？</p>
             <button class="confirm-btn" onclick="confirmAndRedirect('${temp}')">
                 ✅ 确认自动设置并升温
             </button>
         `;
-        chatBox.appendChild(confirmMsg);
+        // 使用 addMessage 并标记为 HTML 内容
+        addMessage('bot', confirmMsgContent, true);
+
         chatBox.scrollTop = chatBox.scrollHeight;
     }
 
-    // 用户点击确认按钮后的操作
+
+    // 用户点击确认按钮后的操作 (保留原逻辑)
     function confirmAndRedirect(temp) {
-        // 1. 存储 AI 推荐的温度值
+        // 1. 模拟用户点击确认的行为，将确认消息添加到聊天框
+        const confirmationMsg = `确认自动设置目标温度为 ${temp}℃ 并发送升温指令。`;
+        addMessage('user', confirmationMsg);
+
+        // 2. 存储 AI 推荐的温度值
         localStorage.setItem("aiSetTemp", temp);
 
-        // 2. 存储一个标志，告诉 index.html 页面需要执行升温操作
+        // 3. 存储一个标志，告诉 index.html 页面需要执行升温操作
         localStorage.setItem("aiAutoHeat", "true");
 
-        // 3. 执行跳转
+        // 4. 执行跳转
         window.location.href = "/index/index.html";
     }
 
-    input.addEventListener("keydown", e => {
-        if (e.key === "Enter") sendMsg();
-    });
-</script>
+    // --------------------------------------------------------
+    // ** 事件处理函数 (适配新逻辑) **
+    // --------------------------------------------------------
 
+    // 快捷按钮点击事件 (调用新的 sendMessage 函数)
+    function quickAction(action) {
+        sendMessage(action); // 直接调用 sendMessage 并传入快捷操作的文本
+    }
+
+    // 允许按 Enter 键发送消息
+    userInput.addEventListener("keypress", function(event) {
+        if (event.key === "Enter") {
+            // 调用新的 sendMessage 函数
+            sendMessage();
+        }
+    });
+
+    // 页面加载完成后，清空并添加初始消息
+    document.addEventListener('DOMContentLoaded', () => {
+        // 清空聊天框中的所有示例消息，只保留一个初始问候
+        chatBox.innerHTML = '';
+
+        addMessage('bot', '您好！我是您的智能农场助手。请问有什么可以帮您的？');
+    });
+
+</script>
 </body>
 </html>
