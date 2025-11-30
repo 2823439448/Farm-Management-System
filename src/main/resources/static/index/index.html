@@ -6,16 +6,35 @@
     <title>智能农场环境监控系统</title>
     <link rel="stylesheet" href="index.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        /* 音乐播放按钮的样式 */
+        #musicToggleBtn {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 2000;
+            padding: 5px 10px;
+            background-color: #2ecc71;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            /* 确保按钮始终可见 */
+            display: block;
+        }
+    </style>
 </head>
 <body>
 <header>
-    <h1>🌱 智能农场环境监控系统</h1>
+    <h1 class="logo-image"></h1>
+
     <nav class="main-nav">
         <ul>
-            <li><a href="#">设备管理</a></li>
-            <li><a href="/AIChat/chat.html">AI问答</a></li>
-            <li><a href="#">客服中心</a></li>
-            <li><a href="#">联系我们</a></li>
+            <li><a href="/login/login.html"><div class="sign-post"><span class="sign-text">注册登录</span></div></a></li>
+            <li><a href="/AIChat/chat.html"><div class="sign-post"><span class="sign-text">AI问答</span></div></a></li>
+            <li><a href="#"><div class="sign-post"><span class="sign-text">客服中心</span></div></a></li>
+            <li><a href="#"><div class="sign-post"><span class="sign-text">联系我们</span></div></a></li>
         </ul>
     </nav>
 </header>
@@ -32,15 +51,15 @@
                 <h3>湿度 (%)</h3>
                 <p id="currentHumid">65</p>
             </div>
-            <div class="metric-box light">
-                <h3>光照 (lux)</h3>
-                <p id="currentLight">8000</p>
+            <div class="metric-box ph">
+                <h3>pH 值</h3>
+                <p id="currentPh">6.5</p>
             </div>
         </div>
     </section>
 
     <section class="chart-panel">
-        <h2>近一小时数据趋势（每分钟更新）</h2>
+        <h2>数据趋势（每分钟更新）</h2>
         <div class="chart-container">
             <canvas id="tempHumidityChart"></canvas>
         </div>
@@ -50,12 +69,12 @@
         <h2>设备操作控制</h2>
         <div class="controls">
             <div class="control-item">
-                <h3>💧 自动浇水</h3>
+                <h3><span class="water-drop-icon"></span> 自动浇水</h3>
                 <p>当前土壤湿度：<span id="soilMoisture">45%</span></p>
                 <button id="waterBtn" class="action-btn primary">点击浇水</button>
             </div>
             <div class="control-item">
-                <h3>🔥 升温加热</h3>
+                <h3><span class="fire-icon"></span> 升温加热</h3>
                 <p>目标温度：<input type="number" id="targetTemp" value="28" min="20" max="40"> ℃</p>
                 <button id="heatBtn" class="action-btn secondary">升温至目标</button>
             </div>
@@ -63,7 +82,7 @@
     </section>
 
     <section class="weather-panel">
-        <h2>🌤️ 农场地区天气预报</h2>
+        <h2>🌤️ 农场地区天气</h2>
         <div id="weatherInfo">
             <p>正在加载天气数据...</p>
         </div>
@@ -74,6 +93,63 @@
         </div>
     </section>
 </main>
+
+<button id="musicToggleBtn">🎶 播放音乐</button>
+
+<audio id="mcMusic" loop>
+    <source src="/music/mc.mp3" type="audio/mpeg">
+    您的浏览器不支持 HTML5 audio 标签。
+</audio>
+
+<script>
+    const music = document.getElementById('mcMusic');
+    const musicBtn = document.getElementById('musicToggleBtn');
+    let isPlaying = false; // 初始状态为未播放
+
+    // 播放尝试函数：尝试播放音乐，并更新按钮文本
+    function tryPlay() {
+        const playPromise = music.play();
+
+        if (playPromise !== undefined) {
+            playPromise.then(() => {
+                // 播放成功
+                console.log("播放成功。");
+                // isPlaying 状态和按钮文本由 'playing' 事件监听器更新
+            }).catch(error => {
+                // 播放失败 (通常是浏览器阻止自动播放)
+                console.log("播放被阻止:", error);
+                isPlaying = false;
+                musicBtn.textContent = '🎶 播放音乐';
+            });
+        }
+    }
+
+    // 监听音乐开始播放事件，同步状态和按钮文本
+    music.addEventListener('playing', () => {
+        isPlaying = true;
+        musicBtn.textContent = '⏸ 暂停音乐';
+    });
+
+    // 监听音乐暂停事件，同步状态和按钮文本
+    music.addEventListener('pause', () => {
+        isPlaying = false;
+        musicBtn.textContent = '🎶 播放音乐';
+    });
+
+    // 1. 移除网页加载完成后，立即尝试播放的代码，实现手动控制
+    // tryPlay();
+
+    // 2. 监听音乐控制按钮的点击事件 (这是主要的控制逻辑)
+    musicBtn.addEventListener('click', () => {
+        if (isPlaying) {
+            music.pause();
+            // 状态和按钮文本由 'pause' 事件监听器更新
+        } else {
+            tryPlay();
+        }
+    });
+
+</script>
 
 <script src="index.js"></script>
 </body>

@@ -68,12 +68,14 @@ const chart = new Chart(ctx, {
 // 模拟数据生成函数
 function fetchData() {
     const now = new Date();
+    // 修正: 确保时间字符串格式正确（分:秒）
     const timeString = `${now.getMinutes() < 10 ? '0' : ''}${now.getMinutes()}:${now.getSeconds() < 10 ? '0' : ''}${now.getSeconds()}`;
 
-    // 模拟新的温度、湿度和光照值
+    // 模拟新的温度、湿度和 pH 值
     const newTemp = (Math.random() * 3 + 24).toFixed(1);
     const newHumid = (Math.random() * 10 + 60).toFixed(0);
-    const newLight = (Math.random() * 2000 + 7000).toFixed(0);
+    // ***** 修正 1: 模拟 pH 值 (例如 5.5 到 7.5 之间，保留一位小数) *****
+    const newPH = (Math.random() * 2 + 5.5).toFixed(1);
 
     // 更新图表数据
     timeLabels.push(timeString);
@@ -90,7 +92,8 @@ function fetchData() {
     // 更新实时数值显示
     document.getElementById('currentTemp').textContent = newTemp;
     document.getElementById('currentHumid').textContent = newHumid;
-    document.getElementById('currentLight').textContent = newLight;
+    // ***** 修正 2: 更改 ID 'currentLight' 为 'currentPh' *****
+    document.getElementById('currentPh').textContent = newPH;
 
     // 重新渲染图表
     chart.update();
@@ -127,7 +130,7 @@ document.getElementById('heatBtn').addEventListener('click', () => {
 
 // ⚠️ 请将 'YOUR_API_KEY' 替换为您自己的 OpenWeatherMap API Key
 const API_KEY = '07f1b15756b74cfdb9c135254252511';
-const DEFAULT_CITY = '北京';
+const DEFAULT_CITY = '成都';
 
 
 async function fetchWeather(city) {
@@ -186,3 +189,49 @@ document.getElementById('getWeatherBtn').addEventListener('click', () => {
     const city = document.getElementById('cityInput').value.trim();
     if (city) fetchWeather(city);
 });
+
+
+// --- 新增: 接收 AI 指令并自动执行升温操作 ---
+// 此逻辑在所有 DOM 和 Chart 初始化完成后执行
+
+function checkAICommand() {
+    // 获取 chat.html 中存储的值和标志
+    const aiSetTemp = localStorage.getItem("aiSetTemp");
+    const aiAutoHeat = localStorage.getItem("aiAutoHeat");
+
+    // 检查是否有 AI 设定的温度和自动加热的标志
+    if (aiSetTemp && aiAutoHeat === "true") {
+
+        // 1. 设置目标温度输入框的值
+        const targetTempInput = document.getElementById('targetTemp');
+        // 确保值有效
+        if (!isNaN(parseFloat(aiSetTemp))) {
+            targetTempInput.value = parseFloat(aiSetTemp);
+        } else {
+            console.error("AI 设定的温度值无效:", aiSetTemp);
+            // 即使值无效，也要清理标志，防止无限循环
+            localStorage.removeItem("aiSetTemp");
+            localStorage.removeItem("aiAutoHeat");
+            return;
+        }
+
+        // 2. 模拟点击“升温至目标”按钮
+        const heatBtn = document.getElementById('heatBtn');
+
+        // 延迟执行点击和清除操作，给用户一个缓冲时间
+        setTimeout(() => {
+            // 触发点击事件，执行 'heatBtn' 的事件监听器
+            heatBtn.click();
+
+            // 3. 清除 localStorage 中的值和标志，防止重复执行
+            localStorage.removeItem("aiSetTemp");
+            localStorage.removeItem("aiAutoHeat");
+
+            console.log(`AI助手指令已执行：目标温度设置为 ${aiSetTemp}℃ 并发送升温指令。`);
+
+        }, 500); // 延迟 0.5 秒
+    }
+}
+
+// 页面加载完成后立即检查 AI 指令
+checkAICommand();

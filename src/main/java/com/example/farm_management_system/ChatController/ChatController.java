@@ -5,117 +5,111 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
-import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
+import org.springframework.http.HttpEntity;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 @RestController
-@CrossOrigin(origins = "*") // 允许前端跨域访问
+@CrossOrigin(origins = "*")
 public class ChatController {
 
-    // DeepSeek API配置 - 请替换为您的实际API密钥
     private static final String DEEPSEEK_API_URL = "https://api.deepseek.com/v1/chat/completions";
-    private static final String DEEPSEEK_API_KEY = "sk-8beb61c3cd574763ad6622ab4e80ca31"; // 请替换为您的API密钥
+    private static final String DEEPSEEK_API_KEY = "sk-ead245fae4e1477aa394e2d64e63f558";
 
-    /**
-     * 处理聊天请求 - 完全适配您的前端HTML代码
-     * 前端发送: POST /api/chat, Content-Type: text/plain, 请求体是纯文本消息
-     * 后端返回: 纯文本响应
-     */
-    @PostMapping(value = "/api/chat",
+    @PostMapping(
+            value = "/api/chat",
             consumes = MediaType.TEXT_PLAIN_VALUE,
-            produces = MediaType.TEXT_PLAIN_VALUE)
+            produces = MediaType.TEXT_PLAIN_VALUE
+    )
     public ResponseEntity<String> handleChat(@RequestBody String userMessage) {
+
+        if (userMessage == null || userMessage.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("消息不能为空");
+        }
+
         try {
-            // 验证消息
-            if (userMessage == null || userMessage.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("消息内容不能为空");
-            }
-
-            if (userMessage.length() > 2000) {
-                return ResponseEntity.badRequest().body("消息长度不能超过2000字符");
-            }
-
-            // 调用DeepSeek API
             String aiResponse = callDeepSeekAPI(userMessage.trim());
-
-            // 返回纯文本响应给前端
             return ResponseEntity.ok(aiResponse);
-
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("服务器错误: " + e.getMessage());
+                    .body("服务器错误：" + e.getMessage());
         }
     }
 
-    /**
-     * 调用DeepSeek API
-     */
     private String callDeepSeekAPI(String userMessage) {
+
+        RestTemplate restTemplate = new RestTemplate();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("Authorization", "Bearer " + DEEPSEEK_API_KEY);
+        headers.set("Content-Type", "application/json");
+
+        // -------- 系统提示词（固定格式输出）--------
+        Map<String, Object> systemPrompt = new HashMap<String, Object>();
+        systemPrompt.put("role", "system");
+        systemPrompt.put(
+                "content",
+                "你是一个友好的智能农场 AI 助手。你的主要职责是提供作物信息和协助农场管理。\n\n" +
+                        // 强制格式要求（当且仅当用户询问温湿度时）
+                        "**特殊指令**：当用户询问某作物的**最佳温湿度**时，你必须**首先**以以下严格格式输出，并且输出后**立即**向用户询问是否需要自动设置温度参数：\n" +
+                        "温度: XX-YY℃\n" +
+                        "湿度: ZZ-WW%\n" +
+                        // 询问用户的提示
+                        "你想让我帮你自动设置目标温度吗？（我会取建议范围的上限进行设置）\n\n" +
+                        // 自由交谈要求（处理其他所有情况）
+                        "**一般指令**：对于任何其他话题或后续问题，你应当以友好、自然的方式自由交谈，提供详细的解释，回答问题，或根据上下文继续对话。"
+        );
+
+        Map<String, Object> userPrompt = new HashMap<String, Object>();
+        userPrompt.put("role", "user");
+        userPrompt.put("content", userMessage);
+
+        Map<String, Object>[] messages = new Map[2];
+        messages[0] = systemPrompt;
+        messages[1] = userPrompt;
+
+        // 请求体
+        Map<String, Object> requestBody = new HashMap<String, Object>();
+        requestBody.put("model", "deepseek-chat");
+        requestBody.put("messages", messages);
+        requestBody.put("temperature", 0.7);
+        requestBody.put("max_tokens", 300);
+        requestBody.put("stream", false);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<Map<String, Object>>(requestBody, headers);
+
         try {
-            RestTemplate restTemplate = new RestTemplate();
+            Map response = restTemplate.postForObject(DEEPSEEK_API_URL, entity, Map.class);
 
-            // 设置请求头
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "Bearer " + DEEPSEEK_API_KEY);
-            headers.set("Content-Type", "application/json");
+            if (response == null) return "AI 无响应";
 
-            // 构建请求体
-            Map<String, Object> requestBody = new HashMap<>();
-            requestBody.put("model", "deepseek-chat");
+            Object choicesObj = response.get("choices");
+            if (!(choicesObj instanceof List)) return "AI 返回格式异常";
 
-            Map<String, String> message = new HashMap<>();
-            message.put("role", "user");
-            message.put("content", userMessage);
+            List choices = (List) choicesObj;
+            if (choices.isEmpty()) return "AI 未返回数据";
 
-            requestBody.put("messages", new Map[]{message});
-            requestBody.put("temperature", 0.7);
-            requestBody.put("max_tokens", 2000);
-            requestBody.put("stream", false);
+            Object msgObj = ((Map) choices.get(0)).get("message");
+            if (!(msgObj instanceof Map)) return "AI 内容异常";
 
-            HttpEntity<Map<String, Object>> request = new HttpEntity<>(requestBody, headers);
+            Map msg = (Map) msgObj;
+            Object contentObj = msg.get("content");
+            if (contentObj == null) return "AI 内容为空";
 
-            // 发送请求
-            Map response = restTemplate.postForObject(DEEPSEEK_API_URL, request, Map.class);
-
-            // 解析响应
-            if (response != null && response.containsKey("choices")) {
-                java.util.List<Map> choices = (java.util.List<Map>) response.get("choices");
-                if (choices != null && !choices.isEmpty()) {
-                    Map firstChoice = choices.get(0);
-                    Map messageMap = (Map) firstChoice.get("message");
-                    if (messageMap != null && messageMap.containsKey("content")) {
-                        return messageMap.get("content").toString();
-                    }
-                }
-            }
-
-            return "抱歉，AI暂时无法响应，请稍后重试。";
+            return contentObj.toString().trim();
 
         } catch (Exception e) {
             e.printStackTrace();
-            return "调用AI服务失败: " + e.getMessage();
+            return "调用 DeepSeek 出错: " + e.getMessage();
         }
     }
 
-    /**
-     * 健康检查接口
-     */
     @GetMapping("/api/health")
-    public ResponseEntity<String> healthCheck() {
-        return ResponseEntity.ok("DeepSeek Chat Service is running - " + new java.util.Date());
-    }
-
-    /**
-     * 测试连接接口
-     */
-    @GetMapping("/api/test")
-    public ResponseEntity<String> testConnection() {
-        return ResponseEntity.ok("Chat Controller is working!");
+    public String health() {
+        return "AI Chat Service Running!";
     }
 }
