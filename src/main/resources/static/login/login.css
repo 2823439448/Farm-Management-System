@@ -28,7 +28,7 @@ body {
 #login-form {
     position: relative;
     /* 保持居中定位，使用 vw 确保定位也随缩放调整 */
-    top: -1.5vw; /* 替换 -30px */
+    top: -0.5vw; /* 替换 -30px */
     width: 31.25vw; /* 替换 600px (600/1920=0.3125) */
     left: 3.125vw; /* 替换 60px (60/1920=0.03125) */
     display: flex;
@@ -71,7 +71,7 @@ body {
     border-bottom: var(--base-line-height) solid black; /* 替换 4px */
 
     color: black;
-    padding: 0 0 0.26vw 0; /* 替换 5px */
+    padding: 1vw 0 0.26vw 0; /* 替换 5px */
     margin-left: 0;
     font-family: 'Press Start 2P', monospace;
     /* 使用视口单位 */
@@ -98,3 +98,31 @@ body {
     -webkit-text-fill-color: black !important;
     transition: background-color 5000s ease-in-out 0s;
 }
+
+/* ********** 新增: 注册按钮样式 ********** */
+.register-line {
+    /* 与上一个输入行对齐，但不需要底部的额外间距 */
+    width: 100%;
+    display: flex;
+    justify-content: flex-end; /* 使按钮靠右对齐 */
+    padding-right: 4.16vw; /* 调整右侧间距，使其在横线右边 */
+    margin-top: -1vw; /* 替换 20px，与密码行留出少量距离 */
+}
+
+.register-button {
+    /* 重置 a 标签的样式，使其看起来像一个文本按钮 */
+    text-decoration: none; /* 移除下划线 */
+    color: black;
+    cursor: pointer;
+    background: none;
+    border: none;
+    /* 使用稍小的字体，使其更容易区分 */
+    font-size: calc(var(--base-font-size) * 1); /* 替换 25px */
+    padding: 0.26vw 0.52vw; /* 替换 5px 10px */
+    transition: color 0.2s;
+}
+
+.register-button:hover {
+    color: #444; /* 鼠标悬停时的颜色变化 */
+}
+/* ************************************ */

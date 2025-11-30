@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minecraft 注册</title>
+  <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="register.css">
+  <style>
+    html, body {
+      height: 100%;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+<form id="register-form" class="minecraft-font">
+  <div class="input-line" style="margin-top: 2.6vw;">
+    <label for="username"></label>
+    <input type="text" id="username" name="username" class="input-field" required placeholder="">
+  </div>
+
+  <div class="input-line">
+    <label for="password"></label>
+    <input type="password" id="password" name="password" class="input-field" required placeholder="">
+  </div>
+
+  <div class="input-line">
+    <label for="confirm-password"></label>
+    <input type="password" id="confirm-password" name="confirm-password" class="input-field" required placeholder="">
+  </div>
+
+</form>
+
+<div class="button-container">
+  <button id="login-button" class="minecraft-button">登录</button>
+  <button id="register-button" class="minecraft-button">完成</button>
+</div>
+
+
+<script src="register.js"></script>
+</body>
+</html>

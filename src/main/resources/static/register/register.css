@@ -1,0 +1,147 @@
+/* 1. 基础样式：实现绝对全屏背景 */
+body {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+
+    /* === 确保绝对全屏的关键修正 (vh/vw) === */
+    min-height: 100vh;
+    width: 100vw;
+    margin: 0;
+
+    background-color: #78a7ff;
+    /* 图片路径 - 请确保您的注册背景图名为 register.png 且路径正确 */
+    background-image: url('/images/register.png');
+
+    /* 确保图片覆盖整个容器，这是关键 */
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-position: center;
+
+    overflow: hidden;
+    /* ================================================ */
+}
+
+/* 2. 定义一个基准缩放单位 */
+:root {
+    --base-font-size: 2.6vw; /* 50px / 1920px ≈ 2.6vw */
+    --base-line-height: calc(var(--base-font-size) * 0.08);
+    --button-font-size: 1.56vw;
+}
+
+/* 3. 表单定位：精确地定位到木牌的书写区域 */
+#register-form {
+    position: relative;
+    /* 关键定位修正：根据截图，将输入框对齐到“输入密码”下方 */
+    top: -8vw; /* 向上微调 */
+    left: 2.8vw;  /* 微调，以对齐书本内边距 */
+    width: 31.25vw;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* 4. Minecraft 字体样式 */
+.minecraft-font {
+    font-family: 'Press Start 2P', monospace;
+    color: black;
+    font-size: var(--base-font-size);
+}
+
+/* 5. 输入行样式 */
+.input-line {
+    display: flex;
+    align-items: flex-end;
+    /* 调整行间距，确保三行能容纳 */
+    margin-bottom: 2.5vw;
+    width: 100%;
+    justify-content: center;
+}
+
+.input-line label {
+    display: none; /* 隐藏 label，仅用 placeholder */
+}
+
+/* 6. 融入式输入框 */
+.input-field {
+    flex-grow: 0;
+    width: 70%;
+    border: none;
+    outline: none;
+    background: transparent;
+
+    border-bottom: var(--base-line-height) solid black;
+
+    color: black;
+    padding: 0 0 0vw 0;
+    margin-left: 0;
+    font-family: 'Press Start 2P', monospace;
+    font-size: var(--base-font-size);
+    text-align: left;
+    line-height: 1.2;
+    /* 调整 placeholder 颜色以匹配黑墨水 */
+    &::placeholder {
+        color: rgba(0, 0, 0, 0.7);
+    }
+}
+
+/* 自动填充和聚焦样式 */
+.input-field:focus {
+    background-color: transparent !important;
+    color: black;
+    border-bottom: var(--base-line-height) solid black;
+    outline: none;
+    box-shadow: none;
+}
+.input-field:-webkit-autofill,
+.input-field:-webkit-autofill:hover,
+.input-field:-webkit-autofill:focus,
+.input-field:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0 30px transparent inset !important;
+    -webkit-text-fill-color: black !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* 7. 按钮容器和按钮样式 */
+.button-container {
+    position: relative;
+    /* 关键定位修正：根据截图，将按钮容器定位到书本底部 */
+    top: 8vw; /* 调整 top 值，使其位于书本底部按钮区域 */
+
+    width: 50vw;
+    display: flex;
+    justify-content: space-evenly;
+    gap: 2vw;
+    transform: translateX(-2.5vw);
+}
+
+.minecraft-button {
+    border: none;
+    background: none;
+    cursor: pointer;
+
+    font-family: 'Press Start 2P', monospace;
+    color: white;
+    font-size: var(--button-font-size);
+
+    padding: 0.5vw 1.5vw;
+    background-color: #AAAAAA;
+    border-top: 0.25vw solid #FFFFFF;
+    border-left: 0.25vw solid #FFFFFF;
+    border-bottom: 0.25vw solid #555555;
+    border-right: 0.25vw solid #555555;
+    box-shadow: 0.25vw 0.25vw 0 #333333;
+
+    text-align: center;
+}
+
+.minecraft-button:active {
+    background-color: #888888;
+    border-bottom: 0.25vw solid #FFFFFF;
+    border-right: 0.25vw solid #FFFFFF;
+    border-top: 0.25vw solid #555555;
+    border-left: 0.25vw solid #555555;
+    box-shadow: none;
+    transform: translate(0.25vw, 0.25vw);
+}
