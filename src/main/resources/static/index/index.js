@@ -130,7 +130,7 @@ document.getElementById('heatBtn').addEventListener('click', () => {
 
 // ⚠️ 请将 'YOUR_API_KEY' 替换为您自己的 OpenWeatherMap API Key
 const API_KEY = '07f1b15756b74cfdb9c135254252511';
-const DEFAULT_CITY = '北京';
+const DEFAULT_CITY = '成都';
 
 
 async function fetchWeather(city) {
