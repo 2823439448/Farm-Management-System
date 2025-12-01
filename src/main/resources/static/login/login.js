@@ -48,7 +48,7 @@ function handleLogin() {
             // 假设后端返回的数据包含 userId，例如 { success: true, userId: "user123" }
             if (data.userId) {
                 // 登录成功，显示用户 ID 弹窗
-                alert(`✅ 登录成功！用户 ID: ${data.userId}`);
+                //alert(`✅ 登录成功！用户 ID: ${data.userId}`);
 
                 // 登录成功后，您可以在此处执行跳转到主页的操作
                 window.location.href = "/index/index.html";
