@@ -3,12 +3,14 @@ package com.example.farm_management_system.DeviceController;
 import com.example.farm_management_system.LoginRequest.LoginRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*; // ⚠️ 新增导入 @GetMapping 和 @RequestParam
+import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpSession;
 import java.sql.*;
+import java.util.ArrayList; // 新增导入
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List; // 新增导入
 import java.util.Map;
 
 @RestController
@@ -146,6 +148,97 @@ public class DeviceController {
                 // 如果能找到一条记录，则表示已绑定
                 return rs.next();
             }
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // =========================================================================
+    // ↓↓↓↓↓↓ 新增：设备列表与活跃设备设置 API ↓↓↓↓↓↓
+    // =========================================================================
+
+    /**
+     * 获取当前登录用户绑定的所有设备列表
+     * URL: /api/myDevices
+     */
+    @GetMapping("/api/myDevices")
+    public ResponseEntity<List<Map<String, String>>> getMyDevices(HttpSession session) {
+        Integer userId = (Integer) session.getAttribute("userId");
+        if (userId == null) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED); // 未登录
+        }
+
+        String sql = "SELECT device_unique_id, device_name FROM devices WHERE user_id = ?";
+        List<Map<String, String>> deviceList = new ArrayList<>();
+
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                while (rs.next()) {
+                    Map<String, String> device = new HashMap<>();
+                    device.put("deviceId", rs.getString("device_unique_id"));
+                    device.put("deviceName", rs.getString("device_name"));
+                    deviceList.add(device);
+                }
+            }
+            return ResponseEntity.ok(deviceList);
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * 设置用户当前要查看和操作的设备ID，保存到 Session 中。
+     * URL: /api/setActiveDevice
+     */
+    @PostMapping("/api/setActiveDevice")
+    public ResponseEntity<Map<String, Object>> setActiveDevice(@RequestBody Map<String, String> requestBody,
+                                                               HttpSession session) {
+        Integer userId = (Integer) session.getAttribute("userId");
+        String activeDeviceId = requestBody.get("deviceId");
+
+        if (userId == null) {
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        }
+
+        if (activeDeviceId == null || activeDeviceId.trim().isEmpty()) {
+            Map<String, Object> error = Collections.singletonMap("message", "设备ID不能为空");
+            return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
+        }
+
+        // ⚠️ 验证该设备是否属于当前用户
+        if (!isDeviceOwnedByUser(activeDeviceId, userId)) {
+            Map<String, Object> error = Collections.singletonMap("message", "该设备不属于您或不存在");
+            return new ResponseEntity<>(error, HttpStatus.FORBIDDEN);
+        }
+
+        // 成功，保存到 Session
+        session.setAttribute("activeDeviceId", activeDeviceId);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("success", true);
+        response.put("message", "当前活跃设备已设置为: " + activeDeviceId);
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 辅助方法：检查设备是否属于指定用户
+     */
+    private boolean isDeviceOwnedByUser(String deviceUniqueId, Integer userId) {
+        String sql = "SELECT id FROM devices WHERE device_unique_id = ? AND user_id = ?";
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, deviceUniqueId);
+            ps.setInt(2, userId);
+            ResultSet rs = ps.executeQuery();
+            return rs.next(); // 找到记录即为真
 
         } catch (SQLException e) {
             e.printStackTrace();

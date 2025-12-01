@@ -21,28 +21,35 @@ public class SensorDataController {
 
     /**
      * URL: /api/my-device-data
-     * 作用: 根据当前登录用户的 Session ID，获取其绑定的所有设备的最新传感器数据。
+     * 作用: 获取当前登录用户 Session 中指定的活跃设备的最新传感器数据。
      */
     @GetMapping("/api/my-device-data")
     public ResponseEntity<List<Map<String, Object>>> getMySensorData(HttpSession session) {
 
         Integer userId = (Integer) session.getAttribute("userId");
+        String activeDeviceId = (String) session.getAttribute("activeDeviceId"); // ⚠️ 新增：获取活跃设备ID
+
         if (userId == null) {
             // 用户未登录，返回 401
             return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
         }
 
-        // 核心 SQL: 联表查询，筛选用户 ID，并通过子查询确保只获取每个设备的最新一条数据
+        if (activeDeviceId == null || activeDeviceId.trim().isEmpty()) {
+            // 没有选择活跃设备，返回空列表（前端将显示"无数据"或提示用户选择设备）
+            return ResponseEntity.ok(new ArrayList<>());
+        }
+
+        // 核心 SQL: 联表查询，筛选用户 ID 和 活跃设备 ID，并获取该设备的最新一条数据
         String sql = "SELECT d.device_name, d.device_unique_id, s.temperature, s.humidity, s.light, s.timestamp " +
                 "FROM devices d " +
                 "JOIN sensor_data s ON d.device_unique_id = s.device_id " +
-                "WHERE d.user_id = ? " +
+                "WHERE d.user_id = ? AND d.device_unique_id = ? " + // ⚠️ 修改：增加 device_unique_id 筛选
                 "AND s.timestamp = ( " +
                 "    SELECT MAX(sub.timestamp) " +
                 "    FROM sensor_data sub " +
                 "    WHERE sub.device_id = d.device_unique_id" +
-                ") " +
-                "ORDER BY d.device_name ASC";
+                ") ";
+
 
         List<Map<String, Object>> resultList = new ArrayList<>();
 
@@ -50,6 +57,7 @@ public class SensorDataController {
              PreparedStatement ps = conn.prepareStatement(sql)) {
 
             ps.setInt(1, userId);
+            ps.setString(2, activeDeviceId); // ⚠️ 新增：设置 activeDeviceId 参数
             ResultSet rs = ps.executeQuery();
 
             while (rs.next()) {
@@ -58,7 +66,7 @@ public class SensorDataController {
                 data.put("deviceId", rs.getString("device_unique_id"));
                 data.put("temperature", rs.getFloat("temperature"));
                 data.put("humidity", rs.getFloat("humidity"));
-                data.put("light", rs.getFloat("light")); // ✅ 注意: 你的设备数据是 light
+                data.put("light", rs.getFloat("light"));
                 data.put("timestamp", rs.getTimestamp("timestamp").toString());
                 resultList.add(data);
             }
