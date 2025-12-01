@@ -65,44 +65,81 @@ const chart = new Chart(ctx, {
     }
 });
 
-// 模拟数据生成函数
-function fetchData() {
-    const now = new Date();
-    // 修正: 确保时间字符串格式正确（分:秒）
-    const timeString = `${now.getMinutes() < 10 ? '0' : ''}${now.getMinutes()}:${now.getSeconds() < 10 ? '0' : ''}${now.getSeconds()}`;
+// =================================================================
+// ✅ 核心修正：使用 API 获取真实数据
+// =================================================================
+async function fetchData() {
+    try {
+        // 调用后端 API，后端会根据 Session 中的 userId 筛选数据
+        const response = await fetch('/api/my-device-data');
 
-    // 模拟新的温度、湿度和 pH 值
-    const newTemp = (Math.random() * 3 + 24).toFixed(1);
-    const newHumid = (Math.random() * 10 + 60).toFixed(0);
-    // ***** 修正 1: 模拟 pH 值 (例如 5.5 到 7.5 之间，保留一位小数) *****
-    const newPH = (Math.random() * 2 + 5.5).toFixed(1);
+        if (response.status === 401) {
+            console.error("未登录或会话过期，请重新登录。");
+            document.getElementById('deviceName').textContent = "未登录";
+            // 可以在此处添加跳转到登录页面的逻辑
+            return;
+        }
 
-    // 更新图表数据
-    timeLabels.push(timeString);
-    tempData.push(newTemp);
-    humidityData.push(newHumid);
+        if (!response.ok) {
+            throw new Error(`HTTP 错误! 状态码: ${response.status}`);
+        }
 
-    // 保持数据点数量不超过 MAX_DATA_POINTS
-    if (timeLabels.length > MAX_DATA_POINTS) {
-        timeLabels.shift();
-        tempData.shift();
-        humidityData.shift();
+        const devicesData = await response.json(); // 获取设备数据数组
+
+        if (devicesData.length === 0) {
+            document.getElementById('deviceName').textContent = "未绑定设备或无数据";
+            console.log("未找到用户绑定的设备数据。");
+            return;
+        }
+
+        // 默认只显示第一个设备的最新数据
+        const latestData = devicesData[0];
+
+        // 提取所需数据
+        const newTemp = latestData.temperature;
+        const newHumid = latestData.humidity;
+        const newLight = latestData.light; // 设备发送的是 light (光照)
+        const deviceName = latestData.deviceName;
+
+        // 根据时间戳更新时间标签
+        const date = new Date(latestData.timestamp);
+        const timeString = `${date.getMinutes() < 10 ? '0' : ''}${date.getMinutes()}:${date.getSeconds() < 10 ? '0' : ''}${date.getSeconds()}`;
+
+
+        // 更新图表数据
+        timeLabels.push(timeString);
+        tempData.push(newTemp);
+        humidityData.push(newHumid);
+
+        // 保持数据点数量不超过 MAX_DATA_POINTS
+        if (timeLabels.length > MAX_DATA_POINTS) {
+            timeLabels.shift();
+            tempData.shift();
+            humidityData.shift();
+        }
+
+        // 更新实时数值显示
+        document.getElementById('currentTemp').textContent = newTemp.toFixed(1);
+        document.getElementById('currentHumid').textContent = newHumid.toFixed(0);
+        // 你的数据是光照(light)，这里用光照值替换 PH 值
+        document.getElementById('currentPh').textContent = newLight.toFixed(1);
+        // 假设 HTML 中有 ID 为 deviceName 的元素来显示设备名 (请在你的 HTML 中添加)
+        document.getElementById('deviceName').textContent = deviceName;
+
+        // 重新渲染图表
+        chart.update();
+
+    } catch (error) {
+        console.error("获取传感器数据失败:", error);
+        // 可以在这里显示一个错误提示给用户
     }
-
-    // 更新实时数值显示
-    document.getElementById('currentTemp').textContent = newTemp;
-    document.getElementById('currentHumid').textContent = newHumid;
-    // ***** 修正 2: 更改 ID 'currentLight' 为 'currentPh' *****
-    document.getElementById('currentPh').textContent = newPH;
-
-    // 重新渲染图表
-    chart.update();
 }
 
-// 每隔 5 秒获取一次数据（演示效果）
+
+// 每隔 5 秒获取一次数据
 setInterval(fetchData, 5000);
 
-// 初始化加载第一批数据
+// 初始化加载第一批数据 (在 setInterval 之前调用一次)
 fetchData();
 
 
@@ -131,7 +168,7 @@ document.getElementById('heatBtn').addEventListener('click', () => {
 });
 
 
-// --- 天气预报功能 ---
+// --- 天气预报功能 (保持不变，它已经是异步的) ---
 
 // ⚠️ 请将 'YOUR_API_KEY' 替换为您自己的 OpenWeatherMap API Key
 const API_KEY = '07f1b15756b74cfdb9c135254252511';
@@ -196,10 +233,7 @@ document.getElementById('getWeatherBtn').addEventListener('click', () => {
 });
 
 
-// --- 新增: 接收 AI 指令并自动执行升温操作 ---
-// 此逻辑在所有 DOM 和 Chart 初始化完成后执行
-
-// --- 新增/修改: 接收 AI 指令并自动执行温湿度操作 ---
+// --- 新增: 接收 AI 指令并自动执行温湿度操作 ---
 // 此逻辑在所有 DOM 和 Chart 初始化完成后执行
 
 function checkAICommand() {

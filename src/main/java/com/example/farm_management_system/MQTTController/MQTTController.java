@@ -1,50 +1,47 @@
 package com.example.farm_management_system.MQTTController;
 
-import org.eclipse.paho.client.mqttv3.MqttClient;
-import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
-import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken;
-import org.eclipse.paho.client.mqttv3.MqttCallback;
-import org.eclipse.paho.client.mqttv3.MqttMessage;
+import org.eclipse.paho.client.mqttv3.*;
 import org.json.JSONObject;
 import org.springframework.stereotype.Service;
 
-import javax.annotation.PostConstruct; // Spring Boot 3.x 可能需要 jakarta.annotation
+import javax.annotation.PostConstruct;
 import java.sql.*;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 @Service
 public class MQTTController {
 
-    // 数据库配置
+    // 数据库配置 (请检查密码是否正确)
     private static final String JDBC_URL = "jdbc:mysql://localhost:3306/farm_manager?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
     private static final String JDBC_USER = "root";
-    private static final String JDBC_PASSWORD = "19416135"; // 请替换为你的实际密码
+    private static final String JDBC_PASSWORD = "19416135";
 
-    private static final String MQTT_BROKER = "tcp://broker.hivemq.com:1883";
-    private static final String MQTT_TOPIC = "iot/topic/#";
+    // MQTT 配置 (请将主题改为你自己的唯一主题，以避免收到不相干数据)
+    private static final String MQTT_BROKER = "tcp://broker.emqx.io:1883";
+    private static final String MQTT_TOPIC = "dlc/farm_manager/#"; // ⚠️ 请替换为你独有的前缀！
 
     private MqttClient client;
 
-    // @PostConstruct 保证了 Spring Boot 启动后立即运行此方法
+    // ✅ 修正点 1: 使用 @PostConstruct 确保应用启动时自动连接
     @PostConstruct
     public void init() {
-        //以此开启新线程，防止阻塞主程序的启动
         new Thread(this::connectAndSubscribe).start();
     }
 
     private void connectAndSubscribe() {
         try {
-            // client ID 加个随机数，避免测试时冲突
             client = new MqttClient(MQTT_BROKER, "SpringBootServer_" + System.currentTimeMillis());
             MqttConnectOptions options = new MqttConnectOptions();
             options.setCleanSession(true);
-            options.setAutomaticReconnect(true); // 开启断线重连
+            options.setAutomaticReconnect(true);
+
+            // ✅ 优化点: 设置 Keep Alive 间隔为 60 秒 (建议值)
+            // 这会强制客户端每 60 秒向 Broker 发送一次心跳包。
+            options.setKeepAliveInterval(20);
 
             client.connect(options);
             System.out.println("✅ MQTT 已连接到 Broker");
 
-            // 设置回调处理接收到的消息
             client.setCallback(new MqttCallback() {
                 @Override
                 public void connectionLost(Throwable cause) {
@@ -55,7 +52,7 @@ public class MQTTController {
                 public void messageArrived(String topic, MqttMessage message) {
                     String payload = new String(message.getPayload());
                     System.out.println("📥 收到设备消息 [" + topic + "]: " + payload);
-                    // 只要收到消息，就尝试写入数据库（不管用户是否在线）
+                    // ✅ 修正点 2: 确保只传入一个参数
                     saveToDatabase(payload);
                 }
 
@@ -72,24 +69,24 @@ public class MQTTController {
     }
 
     /** * 将 MQTT JSON 数据写入 MySQL
-     * 逻辑：只负责存。数据归属谁，由 devices 表的绑定关系决定，这里不关心。
+     * 适配 JSON 格式: {"deviceId": "...", "temperature": 25.5, ..., "timestamp": "2023-12-02T10:00:00"}
      */
     private void saveToDatabase(String jsonStr) {
         try {
             JSONObject json = new JSONObject(jsonStr);
 
-            // 1. 解析数据
-            String deviceId = json.getString("deviceId"); // 对应 devices 表的 device_unique_id
+            // ✅ 修正点 3: 直接从 JSON 中获取单值 (修复了 getJSONArray 错误)
+            String deviceId = json.getString("deviceId");
             float temperature = json.getFloat("temperature");
             float humidity = json.getFloat("humidity");
             float light = json.getFloat("light");
+
             String timeStr = json.getString("timestamp");
 
-            // 2. 处理时间格式 (支持 ISO 格式)
+            // ✅ 修正点 4: 标准 ISO 格式（有 T）可以被 LocalDateTime.parse 直接处理
             LocalDateTime time = LocalDateTime.parse(timeStr);
 
-            // 3. 执行写入
-            // 注意：这里不需要 user_id，我们只存 "这个设备在什么时间产生了什么数据"
+            // 3. 执行写入 (你的 SQL 语句是正确的，不需要 created_at)
             String sql = "INSERT INTO sensor_data (device_id, temperature, humidity, light, timestamp) VALUES (?, ?, ?, ?, ?)";
 
             try (Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
@@ -109,7 +106,6 @@ public class MQTTController {
 
         } catch (Exception e) {
             System.err.println("❌ 数据解析或写入失败: " + e.getMessage());
-            // 可以在这里打印 jsonStr 看看是不是格式发错了
         }
     }
 }
