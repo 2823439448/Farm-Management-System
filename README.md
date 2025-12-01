@@ -1,2 +1,9 @@
-![浇水器](https://github.com/user-attachments/assets/5867e762-7ea3-4d5a-884e-ed0daaafeba0)
+<img width="679" height="551" alt="3e214b86cc68bb91805cedff0e13baba" src="https://github.com/user-attachments/assets/8dbbecdd-140d-4236-8d1c-167f222041b1" />
+<img width="518" height="213" alt="image" src="https://github.com/user-attachments/assets/6a9905a8-e426-4a46-b40d-ceaf5a55bafe" />
+<img width="702" height="116" alt="image" src="https://github.com/user-attachments/assets/1253b12b-5d1c-4a5e-8f4e-07e7dc2b92b3" />
+<img width="1306" height="178" alt="image" src="https://github.com/user-attachments/assets/52dfc1cd-91f4-4f84-9f3e-8feaa787e41e" 
+<img width="949" height="102" alt="image" src="https://github.com/user-attachments/assets/c4d69cb7-70b8-493d-9e54-3b51899a2e0b" />
+<img width="1980" height="1758" alt="image" src="https://github.com/user-attachments/assets/13a62567-afb7-4b41-a3fc-38cf800ca2f3" />
+
+
 毕业设计的农场管理项目
