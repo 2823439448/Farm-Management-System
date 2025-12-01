@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>设备注册与修改</title>
+    <style>
+        /* ... 样式部分不变 ... */
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>农场设备管理</h2>
+    <div id="message" style="display:none;"></div>
+
+    <form id="device-form">
+        <label for="device_unique_id">设备唯一ID (将被映射到后端 'username'):</label>
+        <input type="text" id="device_unique_id" name="device_unique_id" required>
+
+        <label for="device_name">设备名称 (将被映射到后端 'password'):</label>
+        <input type="text" id="device_name" name="device_name" required>
+
+        <button type="submit" id="save-device-button">注册/修改设备</button>
+    </form>
+</div>
+
+<script>
+    document.getElementById('device-form').addEventListener('submit', async function(event) {
+        event.preventDefault();
+        const messageDiv = document.getElementById('message');
+        messageDiv.style.display = 'none';
+
+        // 获取 input 字段的值
+        const deviceUniqueIdValue = document.getElementById('device_unique_id').value.trim();
+        const deviceNameValue = document.getElementById('device_name').value.trim();
+
+        if (!deviceUniqueIdValue || !deviceNameValue) {
+            showMessage('请填写所有设备信息！', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/device/save', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    // ⚠️ 关键修改：将设备数据映射到 LoginRequest 的字段
+                    'username': deviceUniqueIdValue,
+                    'password': deviceNameValue
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                // 成功 (200 OK)
+                showMessage(data.message, 'success');
+            } else {
+                // 失败 (如 401 Unauthorized, 400 Bad Request, 500 Server Error)
+                showMessage(data.message || '操作失败，请检查设备ID和登录状态。', 'error');
+            }
+        } catch (error) {
+            console.error('设备操作请求发送失败:', error);
+            showMessage('网络请求错误，请稍后再试。', 'error');
+        }
+    });
+
+    function showMessage(text, type) {
+        const messageDiv = document.getElementById('message');
+        messageDiv.textContent = text;
+        messageDiv.className = type;
+        messageDiv.style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
