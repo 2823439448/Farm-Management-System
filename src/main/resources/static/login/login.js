@@ -51,7 +51,7 @@ function handleLogin() {
                 alert(`✅ 登录成功！用户 ID: ${data.userId}`);
 
                 // 登录成功后，您可以在此处执行跳转到主页的操作
-                // window.location.href = "/index/index.html";
+                window.location.href = "/index/index.html";
             } else {
                 // 即使状态码是 200，但数据结构不符合预期，也视为失败
                 alert('登录失败，服务器返回数据异常。');
