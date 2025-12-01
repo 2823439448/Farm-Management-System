@@ -16,7 +16,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
-@RestController // 使用 RestController 代替 @Controller
+@RestController
 public class LoginController {
 
     private static final String JDBC_URL = "jdbc:mysql://localhost:3306/farm_manager?useSSL=false&serverTimezone=UTC";
@@ -24,14 +24,14 @@ public class LoginController {
     private static final String JDBC_PASSWORD = "19416135";
 
     @PostMapping("/login")
-    // 返回 ResponseEntity<Map<String, Object>> 确保返回 JSON 格式
     public ResponseEntity<Map<String, Object>> doLogin(@RequestBody LoginRequest loginRequest,
                                                        HttpSession session) {
 
         String username = loginRequest.getUsername();
         String password = loginRequest.getPassword();
 
-        String sql = "SELECT id FROM users WHERE username = ? AND password = ?";
+        // ✅ 修正点 1: SQL 查询 user_id
+        String sql = "SELECT user_id FROM users WHERE username = ? AND password = ?";
 
         try (Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
              PreparedStatement ps = conn.prepareStatement(sql)) {
@@ -41,26 +41,22 @@ public class LoginController {
             ResultSet rs = ps.executeQuery();
 
             if (rs.next()) {
-                // ✅ 登录成功：返回包含 userId 的 JSON 响应
-                int userId = rs.getInt("id");
+                // ✅ 修正点 2: 从结果集中获取 user_id
+                int userId = rs.getInt("user_id");
                 session.setAttribute("userId", userId);
 
                 Map<String, Object> response = new HashMap<>();
                 response.put("success", true);
                 response.put("userId", userId);
-
-                // 返回 HTTP 200 OK 响应和 JSON 数据
                 return ResponseEntity.ok(response);
 
             } else {
-                // 登录失败：返回 JSON 错误信息和 HTTP 401 Unauthorized
                 Map<String, Object> error = Collections.singletonMap("message", "用户名或密码错误");
                 return new ResponseEntity<>(error, HttpStatus.UNAUTHORIZED);
             }
 
         } catch (SQLException e) {
             e.printStackTrace();
-            // 系统错误：返回 JSON 错误信息和 HTTP 500 Internal Server Error
             Map<String, Object> error = Collections.singletonMap("message", "系统错误，请稍后再试");
             return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
         }
