@@ -1,11 +1,9 @@
 package com.example.farm_management_system.DeviceController;
 
-import com.example.farm_management_system.LoginRequest.LoginRequest; // 导入复用的 LoginRequest
+import com.example.farm_management_system.LoginRequest.LoginRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*; // ⚠️ 新增导入 @GetMapping 和 @RequestParam
 
 import javax.servlet.http.HttpSession;
 import java.sql.*;
@@ -98,7 +96,7 @@ public class DeviceController {
     }
 
     /**
-     * 辅助方法：检查设备是否已存在
+     * 辅助方法：检查设备是否已存在 (仅检查是否存在，不检查归属)
      */
     private boolean isDeviceExists(String deviceUniqueId) {
         String sql = "SELECT id FROM devices WHERE device_unique_id = ?";
@@ -108,6 +106,46 @@ public class DeviceController {
             ps.setString(1, deviceUniqueId);
             ResultSet rs = ps.executeQuery();
             return rs.next();
+
+        } catch (SQLException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
+    // =========================================================================
+    // ↓↓↓↓↓↓ 新增：登录后设备绑定状态检查接口 ↓↓↓↓↓↓
+    // =========================================================================
+
+    /**
+     * 检查用户是否绑定了任何设备
+     * 对应前端的 GET /api/checkDeviceBinding?userId=xxx 请求
+     */
+    @GetMapping("/api/checkDeviceBinding")
+    public Map<String, Boolean> checkDeviceBinding(@RequestParam Integer userId) {
+
+        boolean isBound = hasBoundDevices(userId);
+
+        // 返回格式为 {"isBound": true/false}
+        Map<String, Boolean> response = new HashMap<>();
+        response.put("isBound", isBound);
+        return response;
+    }
+
+    /**
+     * 辅助方法：查询指定用户ID是否有绑定的设备
+     */
+    private boolean hasBoundDevices(Integer userId) {
+        // 检查 devices 表中是否存在 user_id 匹配的记录
+        String sql = "SELECT id FROM devices WHERE user_id = ?";
+        try (Connection conn = DriverManager.getConnection(JDBC_URL, JDBC_USER, JDBC_PASSWORD);
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, userId);
+            try (ResultSet rs = ps.executeQuery()) {
+                // 如果能找到一条记录，则表示已绑定
+                return rs.next();
+            }
 
         } catch (SQLException e) {
             e.printStackTrace();

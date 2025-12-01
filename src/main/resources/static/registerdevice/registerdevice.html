@@ -56,8 +56,22 @@
 
             if (response.ok) {
                 // 成功 (200 OK)
-                showMessage(data.message, 'success');
+                // 1. 显示消息
+                showMessage(data.message + "，正在跳转到主页...", 'success');
+
+                // 2. 🚀 直接跳转，不使用延迟 (setTimeout)
+                // 立即执行跳转，但由于 showMessage 可能需要微秒时间渲染，通常不影响。
+                window.location.href = "/index/index.html";
+
+                // ⚠️ 如果直接跳转仍然不行，使用延迟 0 毫秒的 setTimeout 确保跳转任务被排入事件队列末尾
+                /*
+                setTimeout(() => {
+                    window.location.href = "/index/index.html";
+                }, 0);
+                */
+
             } else {
+// ... (失败逻辑不变)else {
                 // 失败 (如 401 Unauthorized, 400 Bad Request, 500 Server Error)
                 showMessage(data.message || '操作失败，请检查设备ID和登录状态。', 'error');
             }

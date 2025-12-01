@@ -48,10 +48,45 @@ function handleLogin() {
             // 假设后端返回的数据包含 userId，例如 { success: true, userId: "user123" }
             if (data.userId) {
                 // 登录成功，显示用户 ID 弹窗
-                //alert(`✅ 登录成功！用户 ID: ${data.userId}`);
+                // alert(`✅ 登录成功！用户 ID: ${data.userId}`);
 
-                // 登录成功后，您可以在此处执行跳转到主页的操作
-                window.location.href = "/index/index.html";
+                const userId = data.userId;
+
+                // 1. 定义设备绑定检查的后端 API 地址
+                const checkDeviceUrl = `/api/checkDeviceBinding?userId=${userId}`;
+
+                // 2. 发送请求到后端，检查设备绑定状态
+                fetch(checkDeviceUrl)
+                    .then(response => {
+                        // 检查响应状态
+                        if (!response.ok) {
+                            // 如果后端返回错误，为了不阻塞用户，默认跳转主页
+                            console.error("检查设备绑定状态失败，状态码:", response.status);
+                            window.location.href = "/index/index.html";
+                            return;
+                        }
+                        return response.json();
+                    })
+                    .then(bindingData => {
+                        // 3. 假设后端返回格式为: { "isBound": true } 或 { "isBound": false }
+                        const isBound = bindingData.isBound;
+
+                        // 4. 根据绑定状态进行跳转
+                        if (isBound) {
+                            // 已绑定设备，跳转到主页
+                            window.location.href = "/index/index.html";
+                        } else {
+                            // 未绑定设备，跳转到设备绑定页面
+                            window.location.href = "/registerdevice/registerdevice.html"; // ⚠️ 请替换为设备绑定页面的实际路径！
+                        }
+                    })
+                    .catch(error => {
+                        // 捕获网络错误或JSON解析错误
+                        console.error('检查设备绑定状态时发生错误:', error);
+                        // 发生错误时，默认跳转到主页
+                        window.location.href = "/index/index.html";
+                    });
+
             } else {
                 // 即使状态码是 200，但数据结构不符合预期，也视为失败
                 alert('登录失败，服务器返回数据异常。');
