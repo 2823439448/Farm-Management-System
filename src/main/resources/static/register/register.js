@@ -29,10 +29,10 @@ function handleRegister(event) {
     // 实际项目中，这里应包含 AJAX 请求将数据发送到后端进行用户创建
 
     // 模拟注册成功
-    alert(`恭喜您，注册成功！\n用户名: ${username}`);
+   // alert(`恭喜您，注册成功！\n用户名: ${username}`);
 
-    // 清空表单
-    document.getElementById('register-form').reset();
+
+    window.location.href = '/login/login.html';
 
     return true; // 返回成功状态
 }
