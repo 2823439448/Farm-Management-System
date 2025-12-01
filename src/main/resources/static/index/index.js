@@ -108,12 +108,17 @@ fetchData();
 
 // --- 交互事件处理 ---
 
-// 浇水按钮事件
-document.getElementById('waterBtn').addEventListener('click', () => {
-    alert('✅ 浇水指令已发送！预计 2 分钟内完成。');
-    console.log('发送浇水指令...');
+// 设置目标湿度按钮事件 (原浇水功能替换)
+document.getElementById('setHumidBtn').addEventListener('click', () => {
+    const target = document.getElementById('targetHumid').value;
+    if (target && !isNaN(target)) {
+        // 模仿升温加热的 alert 格式
+        alert(`💦 提高湿度指令已发送！目标湿度设定为 ${target}%。`);
+        console.log(`发送提高湿度指令，目标 ${target}%...`);
+    } else {
+        alert('请输入有效的目标湿度！');
+    }
 });
-
 // 升温按钮事件
 document.getElementById('heatBtn').addEventListener('click', () => {
     const target = document.getElementById('targetTemp').value;
@@ -194,44 +199,64 @@ document.getElementById('getWeatherBtn').addEventListener('click', () => {
 // --- 新增: 接收 AI 指令并自动执行升温操作 ---
 // 此逻辑在所有 DOM 和 Chart 初始化完成后执行
 
+// --- 新增/修改: 接收 AI 指令并自动执行温湿度操作 ---
+// 此逻辑在所有 DOM 和 Chart 初始化完成后执行
+
 function checkAICommand() {
     // 获取 chat.html 中存储的值和标志
     const aiSetTemp = localStorage.getItem("aiSetTemp");
     const aiAutoHeat = localStorage.getItem("aiAutoHeat");
+    const aiSetHumid = localStorage.getItem("aiSetHumid"); // 新增：目标湿度值
+    const aiAutoHumid = localStorage.getItem("aiAutoHumid"); // 新增：湿度指令标志
 
-    // 检查是否有 AI 设定的温度和自动加热的标志
-    if (aiSetTemp && aiAutoHeat === "true") {
+    let tempExecuted = false; // 标记温度指令是否执行
 
-        // 1. 设置目标温度输入框的值
+    // 1. **执行温度指令 (优先)**
+    if (aiSetTemp && aiAutoHeat === "true" && !isNaN(parseFloat(aiSetTemp))) {
         const targetTempInput = document.getElementById('targetTemp');
+
         // 确保值有效
         if (!isNaN(parseFloat(aiSetTemp))) {
             targetTempInput.value = parseFloat(aiSetTemp);
         } else {
             console.error("AI 设定的温度值无效:", aiSetTemp);
-            // 即使值无效，也要清理标志，防止无限循环
             localStorage.removeItem("aiSetTemp");
             localStorage.removeItem("aiAutoHeat");
             return;
         }
 
-        // 2. 模拟点击“升温至目标”按钮
-        const heatBtn = document.getElementById('heatBtn');
-
-        // 延迟执行点击和清除操作，给用户一个缓冲时间
         setTimeout(() => {
-            // 触发点击事件，执行 'heatBtn' 的事件监听器
-            heatBtn.click();
-
-            // 3. 清除 localStorage 中的值和标志，防止重复执行
+            document.getElementById('heatBtn').click();
             localStorage.removeItem("aiSetTemp");
             localStorage.removeItem("aiAutoHeat");
+            console.log(`AI助手指令(1/2)已执行：目标温度设置为 ${aiSetTemp}℃ 并发送升温指令。`);
+        }, 500); // 延迟 0.5 秒执行温度指令
+        tempExecuted = true;
+    } else {
+        // 清理无效或未执行的温度指令
+        localStorage.removeItem("aiSetTemp");
+        localStorage.removeItem("aiAutoHeat");
+    }
 
-            console.log(`AI助手指令已执行：目标温度设置为 ${aiSetTemp}℃ 并发送升温指令。`);
+    // 2. **执行湿度指令 (在温度指令后)**
+    if (aiSetHumid && aiAutoHumid === "true" && !isNaN(parseFloat(aiSetHumid))) {
+        const targetHumidInput = document.getElementById('targetHumid');
+        targetHumidInput.value = parseFloat(aiSetHumid);
 
-        }, 500); // 延迟 0.5 秒
+        // 如果执行了温度指令，则延迟更久（1.5 秒），否则延迟 0.5 秒
+        const delay = tempExecuted ? 1500 : 500;
+
+        setTimeout(() => {
+            document.getElementById('setHumidBtn').click();
+            localStorage.removeItem("aiSetHumid");
+            localStorage.removeItem("aiAutoHumid");
+            console.log(`AI助手指令(${tempExecuted ? '2/2' : '1/1'})已执行：目标湿度设置为 ${aiSetHumid}% 并发送提高湿度指令。`);
+        }, delay);
+    } else {
+        // 清理无效或未执行的湿度指令
+        localStorage.removeItem("aiSetHumid");
+        localStorage.removeItem("aiAutoHumid");
     }
 }
-
 // 页面加载完成后立即检查 AI 指令
 checkAICommand();
