@@ -31,6 +31,7 @@
 
     <nav class="main-nav">
         <ul>
+            <li><a href="/registerdevice/registerdevice.html"><div class="sign-post"><span class="sign-text">设备管理</span></div></a></li>
             <li><a href="/login/login.html"><div class="sign-post"><span class="sign-text">注册登录</span></div></a></li>
             <li><a href="/AIChat/chat.html"><div class="sign-post"><span class="sign-text">AI问答</span></div></a></li>
             <li><a href="#"><div class="sign-post"><span class="sign-text">客服中心</span></div></a></li>
@@ -51,9 +52,9 @@
                 <h3>湿度 (%)</h3>
                 <p id="currentHumid">65</p>
             </div>
-            <div class="metric-box ph">
-                <h3>pH 值</h3>
-                <p id="currentPh">6.5</p>
+            <div class="metric-box light">
+                <h3>光照 (lux)</h3>
+                <p id="currentLight">6.5</p>
             </div>
         </div>
     </section>
@@ -70,8 +71,8 @@
         <div class="controls">
             <div class="control-item">
                 <h3><span class="water-drop-icon"></span> 自动浇水</h3>
-                <p>当前土壤湿度：<span id="soilMoisture">45%</span></p>
-                <button id="waterBtn" class="action-btn primary">点击浇水</button>
+                <p>目标湿度：<input type="number" id="targetHumid" value="70" min="50" max="90"> %</p>
+                <button id="setHumidBtn" class="action-btn primary">提高至目标</button>
             </div>
             <div class="control-item">
                 <h3><span class="fire-icon"></span> 升温加热</h3>

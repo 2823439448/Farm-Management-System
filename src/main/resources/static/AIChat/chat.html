@@ -302,48 +302,105 @@
             .catch(e => addMessage("bot", "请求失败：" + e)); // 错误处理也使用 addMessage
     }
 
+    // ... 保持您原有的 addMessage 和 sendMessage 函数不变 ...
+
     // 新增：处理 Bot 回复，解析温湿度范围，并显示确认按钮
     function handleBotResponse(answer) {
-        // AI 后端返回格式为 "温度: XX-YY℃\n湿度: ZZ%"
-        // 匹配：温度: 后面跟一个空格或没有，再跟一个数字范围（可能带小数），再跟 ℃
+        // 匹配温度范围: "温度: XX-YY℃"
         const tempRangeMatch = answer.match(/温度:\s*(\d+(\.\d+)?)\s*-\s*(\d+(\.\d+)?)\s*℃/);
+        // 匹配湿度值或范围: "湿度: ZZ-AA%" 或 "湿度: AA%"
+        // 此正则更具鲁棒性，能匹配单值 (如: 湿度: 75%) 或范围 (如: 湿度: 60-80%)
+        const humidMatch = answer.match(/湿度:\s*(\d+(\.\d+)?)\s*(?:-\s*(\d+(\.\d+)?))?\s*%/);
 
-        if (!tempRangeMatch) return;   // 没解析到温度范围就不做后续操作
+        let temp = null;
+        let humid = null;
+        let confirmMsgContent = '<p>检测到作物最佳环境建议。</p>';
+        let needsConfirmation = false;
 
-        // 提取范围的上限和下限
-        // tempRangeMatch[1] 是第一个捕获组（最小值），tempRangeMatch[3] 是第二个（最大值）
-        // 确保使用 maxTemp 的值作为目标温度
-        const maxTemp = parseFloat(tempRangeMatch[3]);
+        // 1. 解析温度
+        if (tempRangeMatch) {
+            // 取上限作为目标温度
+            const maxTemp = parseFloat(tempRangeMatch[3]);
+            temp = maxTemp.toFixed(1);
+            confirmMsgContent += `<p>• 目标温度设定为 ${temp}℃ (取建议范围上限)</p>`;
+            needsConfirmation = true;
+        }
 
-        // 提取一个合适的单一目标温度：取上限作为自动设置的目标
-        const temp = maxTemp.toFixed(1);
+        // 2. 解析湿度
+        if (humidMatch) {
+            let maxHumid;
+            // 如果有范围上限 (第4个捕获组)
+            if (humidMatch[4]) {
+                maxHumid = parseFloat(humidMatch[4]);
+            } else {
+                // 否则取单一值 (第1个捕获组)
+                maxHumid = parseFloat(humidMatch[1]);
+            }
 
-        // 1. 在聊天框中添加确认提示和按钮
-        const confirmMsgContent = `
-            <p>检测到作物最佳温湿度建议。</p>
-            <p>您想让 **AI 助手自动设置目标温度为 ${temp}℃** (取建议范围的上限) 并发送升温指令吗？</p>
-            <button class="confirm-btn" onclick="confirmAndRedirect('${temp}')">
-                ✅ 确认自动设置
-            </button>
-        `;
+            // 目标湿度取上限或单一值，并取整
+            humid = Math.round(maxHumid);
+            confirmMsgContent += `<p>• 目标湿度设定为 ${humid}%</p>`;
+            needsConfirmation = true;
+        }
+
+        // 如果未解析到任何温湿度信息，则退出
+        if (!needsConfirmation) return;
+
+        // 3. 构建确认消息和按钮
+        confirmMsgContent += `<p>您想让 **AI 助手自动设置**上述目标并发送指令吗？</p>`;
+
+        // 传递解析出的温湿度目标值，如果某项为 null，则传递 '0'
+        const tempValue = temp !== null ? temp : '0';
+        const humidValue = humid !== null ? humid : '0'; // 确保传递字符串 '0'
+
+        confirmMsgContent += `
+        <button class="confirm-btn" onclick="confirmAndRedirectAll('${tempValue}', '${humidValue}')">
+            ✅ 确认自动设置
+        </button>
+    `;
+
         // 使用 addMessage 并标记为 HTML 内容
         addMessage('bot', confirmMsgContent, true);
 
-        chatBox.scrollTop = chatBox.scrollHeight;
+        // 假设 chatBox 已定义
+        if(typeof chatBox !== 'undefined') {
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
     }
 
 
-    // 用户点击确认按钮后的操作 (保留原逻辑)
-    function confirmAndRedirect(temp) {
-        // 1. 模拟用户点击确认的行为，将确认消息添加到聊天框
-        const confirmationMsg = `确认自动设置目标温度为 ${temp}℃ 并发送升温指令。`;
-        addMessage('user', confirmationMsg);
+    // 用户点击确认按钮后的操作 (统一处理温湿度)
+    function confirmAndRedirectAll(temp, humid) {
+        let confirmationMsg = '确认自动设置目标：';
 
-        // 2. 存储 AI 推荐的温度值
-        localStorage.setItem("aiSetTemp", temp);
+        // 1. 存储温度目标
+        // 检查 parseFloat(temp) > 0 是否成立
+        if (parseFloat(temp) > 0) {
+            localStorage.setItem("aiSetTemp", temp);
+            localStorage.setItem("aiAutoHeat", "true");
+            confirmationMsg += `温度 ${temp}℃ (升温) `;
+        } else {
+            localStorage.removeItem("aiSetTemp");
+            localStorage.removeItem("aiAutoHeat");
+        }
 
-        // 3. 存储一个标志，告诉 index.html 页面需要执行升温操作
-        localStorage.setItem("aiAutoHeat", "true");
+        // 2. 存储湿度目标
+        // 检查 parseFloat(humid) > 0 是否成立
+        if (parseFloat(humid) > 0) {
+            localStorage.setItem("aiSetHumid", humid);
+            localStorage.setItem("aiAutoHumid", "true");
+            confirmationMsg += `湿度 ${humid}% (提高湿度)`;
+        } else {
+            localStorage.removeItem("aiSetHumid");
+            localStorage.removeItem("aiAutoHumid");
+        }
+
+        // 3. 模拟用户点击确认的行为
+        if (typeof addMessage !== 'undefined') {
+            addMessage('user', confirmationMsg);
+        } else {
+            console.warn("addMessage function not defined. Cannot log user confirmation.");
+        }
 
         // 4. 执行跳转
         window.location.href = "/index/index.html";
@@ -369,11 +426,10 @@
     // 页面加载完成后，清空并添加初始消息
     document.addEventListener('DOMContentLoaded', () => {
         // 清空聊天框中的所有示例消息，只保留一个初始问候
-        chatBox.innerHTML = '';
+        if(chatBox) chatBox.innerHTML = '';
 
         addMessage('bot', '您好！我是您的智能农场助手。请问有什么可以帮您的？');
     });
-
 </script>
 </body>
 </html>
