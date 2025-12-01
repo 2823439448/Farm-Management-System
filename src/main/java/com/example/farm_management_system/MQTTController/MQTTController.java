@@ -18,7 +18,7 @@ public class MQTTController {
     private static final String JDBC_PASSWORD = "19416135"; // 请检查密码是否正确
 
     // MQTT 配置
-    private static final String MQTT_BROKER = "tcp://broker.emqx.io:1883";
+    private static final String MQTT_BROKER = "tcp://test.mosquitto.org:1883";
     private static final String MQTT_TOPIC = "dlc/farm_manager/#"; // ⚠️ 请替换为你独有的前缀！
 
     private MqttClient client;

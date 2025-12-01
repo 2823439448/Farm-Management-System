@@ -131,7 +131,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-// ---- 修正后的 fetchData() (保持不变) ----
+// ---- 修正后的 fetchData() ----
+// 目标：使用设备时间戳，并通过去重检查来确保图表流动和精度。
 async function fetchData() {
     let shouldUpdateChart = false;
 
@@ -182,12 +183,36 @@ async function fetchData() {
 
         const newTemp = Number(latestData.temperature);
         const newHumid = Number(latestData.humidity);
-        const newLight = Number(latestData.light);
-        const deviceName = latestData.deviceName || "未知设备"; // 确保有默认值
+        const newLight = Number(latestData.light); // 变量名 newLight 保持不变
+        const deviceName = latestData.deviceName || "未知设备";
 
-        // **修正 2：使用当前系统时间作为图表标签，确保图表流动**
-        const now = new Date();
-        const timeString = `${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}:${now.getSeconds().toString().padStart(2,'0')}`;
+        // **修正 1：使用设备时间戳（API 返回的 timestamp）**
+        const date = new Date(latestData.timestamp);
+        const timeString = `${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}:${date.getSeconds().toString().padStart(2,'0')}`;
+
+        // **修正 2：检查是否与数组中的最后一个点重复**
+        const lastIndex = timeLabels.length - 1;
+
+        // 检查时间戳和数值是否都相同
+        if (lastIndex >= 0 && timeLabels[lastIndex] === timeString &&
+            tempData[lastIndex] === newTemp && humidityData[lastIndex] === newHumid) {
+
+            console.log("⚠️ 检测到重复数据，跳过图表更新。");
+
+            // 但仍需更新 DOM 文本显示
+            const currentTempEl = document.getElementById('currentTemp');
+            const currentHumidEl = document.getElementById('currentHumid');
+            const currentLightEl = document.getElementById('currentLight'); // <--- 更改 ID
+            const deviceNameEl = document.getElementById('deviceName');
+
+            if (currentTempEl && !isNaN(newTemp)) currentTempEl.textContent = newTemp.toFixed(1);
+            if (currentHumidEl && !isNaN(newHumid)) currentHumidEl.textContent = newHumid.toFixed(0);
+            if (currentLightEl && !isNaN(newLight)) currentLightEl.textContent = newLight.toFixed(1); // <--- 使用 newLight 和新的元素变量
+            if (deviceNameEl) deviceNameEl.textContent = deviceName;
+
+            return; // 结束函数，不进行图表数组操作和 update
+        }
+
 
         // 移除占位符
         if (timeLabels.length === 1 && /加载中|无数据/.test(String(timeLabels[0]))) {
@@ -208,26 +233,23 @@ async function fetchData() {
             humidityData.shift();
         }
 
-        // 更新 DOM 显示 (添加对 null 的检查，防止再次出现 TypeError)
+        // 更新 DOM 显示
         const currentTempEl = document.getElementById('currentTemp');
         const currentHumidEl = document.getElementById('currentHumid');
-        const currentPhEl = document.getElementById('currentPh');
+        const currentLightEl = document.getElementById('currentLight'); // <--- 更改 ID
         const deviceNameEl = document.getElementById('deviceName');
 
         if (currentTempEl && !isNaN(newTemp)) currentTempEl.textContent = newTemp.toFixed(1);
         if (currentHumidEl && !isNaN(newHumid)) currentHumidEl.textContent = newHumid.toFixed(0);
-        if (currentPhEl && !isNaN(newLight)) currentPhEl.textContent = newLight.toFixed(1);
+        if (currentLightEl && !isNaN(newLight)) currentLightEl.textContent = newLight.toFixed(1); // <--- 使用 newLight 和新的元素变量
         if (deviceNameEl) deviceNameEl.textContent = deviceName;
 
         shouldUpdateChart = true;
 
     } catch (error) {
         console.error("❌ 获取传感器数据失败或解析错误:", error);
-        // 捕获错误时，我们不再清空数组，保持图表不变
     } finally {
-        // 强制更新图表
         if (chart && shouldUpdateChart) {
-            // 无需重新赋值 chart.data.labels = timeLabels，因为引用已绑定
             chart.update('none');
             console.log("✅ Chart.js 已强制更新");
         }
