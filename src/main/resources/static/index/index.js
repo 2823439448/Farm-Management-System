@@ -165,10 +165,14 @@ async function fetchData() {
                 shouldUpdateChart = true;
             }
 
-            // 修正 DOM 元素错误：即使出错，也要确保有这个元素
             const deviceNameEl = document.getElementById('deviceName');
             if(deviceNameEl) {
-                deviceNameEl.textContent = isErrorOrEmpty ? "未登录" : "设备离线/无数据";
+                // ⚠️ 修改提示信息：根据状态给出更精确的提示
+                if (isErrorOrEmpty) {
+                    deviceNameEl.textContent = "未登录或会话过期";
+                } else if (devicesData.length === 0) {
+                    deviceNameEl.textContent = "请在设备管理页选择一个活跃设备";
+                }
             }
 
             // 如果只有占位符，强制更新一次图表，否则不更新（避免闪烁）
@@ -179,11 +183,12 @@ async function fetchData() {
         }
 
         // --- 有数据时的处理 ---
+        // ⚠️ 简化：由于后端只返回当前活跃设备数据，devicesData[0] 即可
         const latestData = devicesData[0];
 
         const newTemp = Number(latestData.temperature);
         const newHumid = Number(latestData.humidity);
-        const newLight = Number(latestData.light); // 变量名 newLight 保持不变
+        const newLight = Number(latestData.light);
         const deviceName = latestData.deviceName || "未知设备";
 
         // **修正 1：使用设备时间戳（API 返回的 timestamp）**
@@ -202,12 +207,12 @@ async function fetchData() {
             // 但仍需更新 DOM 文本显示
             const currentTempEl = document.getElementById('currentTemp');
             const currentHumidEl = document.getElementById('currentHumid');
-            const currentLightEl = document.getElementById('currentLight'); // <--- 更改 ID
+            const currentLightEl = document.getElementById('currentLight');
             const deviceNameEl = document.getElementById('deviceName');
 
             if (currentTempEl && !isNaN(newTemp)) currentTempEl.textContent = newTemp.toFixed(1);
             if (currentHumidEl && !isNaN(newHumid)) currentHumidEl.textContent = newHumid.toFixed(0);
-            if (currentLightEl && !isNaN(newLight)) currentLightEl.textContent = newLight.toFixed(1); // <--- 使用 newLight 和新的元素变量
+            if (currentLightEl && !isNaN(newLight)) currentLightEl.textContent = newLight.toFixed(1);
             if (deviceNameEl) deviceNameEl.textContent = deviceName;
 
             return; // 结束函数，不进行图表数组操作和 update
@@ -236,12 +241,12 @@ async function fetchData() {
         // 更新 DOM 显示
         const currentTempEl = document.getElementById('currentTemp');
         const currentHumidEl = document.getElementById('currentHumid');
-        const currentLightEl = document.getElementById('currentLight'); // <--- 更改 ID
+        const currentLightEl = document.getElementById('currentLight');
         const deviceNameEl = document.getElementById('deviceName');
 
         if (currentTempEl && !isNaN(newTemp)) currentTempEl.textContent = newTemp.toFixed(1);
         if (currentHumidEl && !isNaN(newHumid)) currentHumidEl.textContent = newHumid.toFixed(0);
-        if (currentLightEl && !isNaN(newLight)) currentLightEl.textContent = newLight.toFixed(1); // <--- 使用 newLight 和新的元素变量
+        if (currentLightEl && !isNaN(newLight)) currentLightEl.textContent = newLight.toFixed(1);
         if (deviceNameEl) deviceNameEl.textContent = deviceName;
 
         shouldUpdateChart = true;
