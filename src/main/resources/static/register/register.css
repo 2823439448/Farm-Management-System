@@ -54,7 +54,7 @@ body {
     display: flex;
     align-items: flex-end;
     /* 调整行间距，确保三行能容纳 */
-    margin-bottom: 2.5vw;
+    margin-bottom: 2vw;
     width: 100%;
     justify-content: center;
 }

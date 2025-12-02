@@ -4,6 +4,16 @@
     <meta charset="UTF-8">
     <title>设备注册与修改</title>
     <style>
+        /* 全局背景设置 */
+        body {
+            background-image: url('/images/devbackground.png'); /* 设置背景图片 */
+            background-size: cover; /* 确保图片铺满整个屏幕 */
+            background-repeat: no-repeat; /* 防止图片重复 */
+            background-attachment: fixed; /* 固定背景，不随内容滚动 */
+            margin: 0; /* 移除默认外边距 */
+            padding: 0; /* 移除默认内边距 */
+        }
+
         .container {
             width: 80%;
             max-width: 600px;
@@ -11,7 +21,7 @@
             padding: 20px;
             border-radius: 8px;
             box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
-            background-color: #fff;
+            background-color: rgba(255, 255, 255, 0.85); /* 更改为半透明白色 */
         }
         h2, h3 {
             text-align: center;
@@ -85,10 +95,10 @@
     <div id="message" style="display:none;"></div>
 
     <form id="device-form">
-        <label for="device_unique_id">设备唯一ID (将被映射到后端 'username'):</label>
+        <label for="device_unique_id">设备唯一ID :</label>
         <input type="text" id="device_unique_id" name="device_unique_id" required>
 
-        <label for="device_name">设备名称 (将被映射到后端 'password'):</label>
+        <label for="device_name">设备名称:</label>
         <input type="text" id="device_name" name="device_name" required>
 
         <button type="submit" id="save-device-button">注册/修改设备</button>
@@ -219,7 +229,7 @@
 
             selectEl.disabled = false;
             setButton.disabled = false;
-            showMessage('设备列表加载成功，请选择一个设备设为活跃设备', 'info', 'device-select-message');
+            //showMessage('设备列表加载成功，请选择一个设备设为活跃设备', 'info', 'device-select-message');
 
         } catch (error) {
             console.error('获取设备列表失败:', error);
