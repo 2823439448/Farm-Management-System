@@ -1,4 +1,4 @@
-package com.example.farm_management_system.HomeController;
+package com.example.farm_management_system.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,8 +11,5 @@ public class HomeController {
         return "redirect:/index/index.html";
     }
 
-    @GetMapping("/chat")
-    public String chatPage() {
-        return "AIChat/chat"; // 返回chat.html
-    }
+
 }

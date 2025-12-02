@@ -1,4 +1,4 @@
-// 文件: index.js (最终稳定版：修复 Chart.js 无法自动更新的 Bug)
+// 文件: index.js (最终稳定版：包含自动设置默认设备和修复 Chart.js 的 Bug)
 
 const MAX_DATA_POINTS = 60;
 
@@ -131,8 +131,41 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
+// ⭐️ 新增函数：尝试自动设置默认活跃设备
+async function trySetDefaultDevice() {
+    try {
+        const response = await fetch('/api/setDefaultActiveDevice', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        if (response.ok) {
+            console.log("✅ 后端已自动设置默认活跃设备，即将重新加载数据。");
+            const deviceNameEl = document.getElementById('deviceName');
+            if(deviceNameEl) {
+                deviceNameEl.textContent = "已设置默认设备，正在加载数据...";
+            }
+            return true;
+        } else {
+            const data = await response.json();
+            // 如果是因为“用户没有注册任何设备”而失败
+            if (response.status === 404) {
+                const deviceNameEl = document.getElementById('deviceName');
+                if(deviceNameEl) deviceNameEl.textContent = "请先在设备管理页注册设备";
+            } else {
+                const deviceNameEl = document.getElementById('deviceName');
+                if(deviceNameEl) deviceNameEl.textContent = data.message || "请在设备管理页选择一个活跃设备";
+            }
+            console.warn("⚠️ 自动设置默认设备失败：", data.message);
+            return false;
+        }
+    } catch (error) {
+        console.error("❌ 尝试设置默认设备时发生网络错误:", error);
+        return false;
+    }
+}
+
+
 // ---- 修正后的 fetchData() ----
-// 目标：使用设备时间戳，并通过去重检查来确保图表流动和精度。
 async function fetchData() {
     let shouldUpdateChart = false;
 
@@ -144,10 +177,12 @@ async function fetchData() {
 
         let devicesData = [];
         let isErrorOrEmpty = false;
+        let isUnauthorized = false;
 
         if (response.status === 401) {
             console.error("❌ 错误 401: 未登录或会话过期，请重新登录。");
             isErrorOrEmpty = true;
+            isUnauthorized = true;
         } else if (!response.ok) {
             console.error(`❌ HTTP 错误! 状态码: ${response.status}`);
             throw new Error(`HTTP 错误! 状态码: ${response.status}`);
@@ -155,24 +190,31 @@ async function fetchData() {
             devicesData = await response.json();
         }
 
+        // --- 错误或空数据处理 ---
         if (devicesData.length === 0 || isErrorOrEmpty) {
-            // **修正 1：如果获取失败，不再清空数组，而是保留历史数据**
+
+            const deviceNameEl = document.getElementById('deviceName');
+
+            if (isUnauthorized) {
+                if(deviceNameEl) deviceNameEl.textContent = "未登录或会话过期";
+            } else if (!isErrorOrEmpty && devicesData.length === 0) {
+                // ⭐️ 核心修正：如果用户已登录但没有活跃设备，则尝试设置默认设备
+                const success = await trySetDefaultDevice();
+                if (success) {
+                    return fetchData(); // 尝试重新获取数据
+                }
+                // 如果 trySetDefaultDevice 失败，它已经设置了设备名称的错误信息
+            } else if (devicesData.length === 0) {
+                if(deviceNameEl) deviceNameEl.textContent = "请在设备管理页选择一个活跃设备";
+            }
+
+
             // 只有当数组为空时，才设置占位符
             if (timeLabels.length === 0) {
                 timeLabels.push('无数据');
                 tempData.push(null);
                 humidityData.push(null);
                 shouldUpdateChart = true;
-            }
-
-            const deviceNameEl = document.getElementById('deviceName');
-            if(deviceNameEl) {
-                // ⚠️ 修改提示信息：根据状态给出更精确的提示
-                if (isErrorOrEmpty) {
-                    deviceNameEl.textContent = "未登录或会话过期";
-                } else if (devicesData.length === 0) {
-                    deviceNameEl.textContent = "请在设备管理页选择一个活跃设备";
-                }
             }
 
             // 如果只有占位符，强制更新一次图表，否则不更新（避免闪烁）
@@ -183,7 +225,6 @@ async function fetchData() {
         }
 
         // --- 有数据时的处理 ---
-        // ⚠️ 简化：由于后端只返回当前活跃设备数据，devicesData[0] 即可
         const latestData = devicesData[0];
 
         const newTemp = Number(latestData.temperature);
@@ -191,14 +232,13 @@ async function fetchData() {
         const newLight = Number(latestData.light);
         const deviceName = latestData.deviceName || "未知设备";
 
-        // **修正 1：使用设备时间戳（API 返回的 timestamp）**
+        // 使用设备时间戳（API 返回的 timestamp）
         const date = new Date(latestData.timestamp);
         const timeString = `${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}:${date.getSeconds().toString().padStart(2,'0')}`;
 
-        // **修正 2：检查是否与数组中的最后一个点重复**
+        // 检查是否与数组中的最后一个点重复
         const lastIndex = timeLabels.length - 1;
 
-        // 检查时间戳和数值是否都相同
         if (lastIndex >= 0 && timeLabels[lastIndex] === timeString &&
             tempData[lastIndex] === newTemp && humidityData[lastIndex] === newHumid) {
 

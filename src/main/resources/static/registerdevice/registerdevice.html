@@ -117,119 +117,100 @@
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        // 1. 注册/修改表单提交事件
-        document.getElementById('device-form').addEventListener('submit', handleDeviceSave);
-
-        // 2. 活跃设备设置事件
-        document.getElementById('set-active-device-button').addEventListener('click', setActiveDevice);
-
-        // 3. 初始加载设备列表
-        loadDeviceList();
-    });
-
-    /**
-     * 显示消息，支持指定消息容器
-     */
-    function showMessage(text, type, targetDivId = 'message') {
-        const messageDiv = document.getElementById(targetDivId);
-        if (!messageDiv) return;
-
-        messageDiv.textContent = text;
-        messageDiv.className = type;
-        messageDiv.style.display = 'block';
-
-        // 如果是设备选择的消息，自动隐藏
-        if (targetDivId === 'device-select-message' && type !== 'error') {
-            setTimeout(() => messageDiv.style.display = 'none', 3000);
+    // 辅助函数：显示消息
+    function showMessage(msg, type, elementId = 'message') {
+        const el = document.getElementById(elementId);
+        if (el) {
+            el.textContent = msg;
+            el.className = 'message ' + type;
         }
     }
 
-    /**
-     * 处理设备注册/修改请求
-     */
-    async function handleDeviceSave(event) {
-        event.preventDefault();
+    // 表单提交事件 (注册/修改设备)
+    document.getElementById('device-form').addEventListener('submit', async function(e) {
+        e.preventDefault();
 
-        const deviceUniqueIdValue = document.getElementById('device_unique_id').value.trim();
-        const deviceNameValue = document.getElementById('device_name').value.trim();
-
-        if (!deviceUniqueIdValue || !deviceNameValue) {
-            showMessage('请填写所有设备信息！', 'error');
-            return;
-        }
+        const deviceUniqueId = document.getElementById('device_unique_id').value;
+        const deviceName = document.getElementById('device_name').value;
 
         try {
             const response = await fetch('/device/save', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    'username': deviceUniqueIdValue, // 映射到 LoginRequest
-                    'password': deviceNameValue      // 映射到 LoginRequest
+                    username: deviceUniqueId, // 后端复用了 LoginRequest 的字段
+                    password: deviceName
                 })
             });
 
             const data = await response.json();
 
             if (response.ok) {
-                // 成功：显示消息，重新加载设备列表，提示用户选择
-                showMessage(data.message + "，请在下方选择设备并设为活跃设备。", 'success');
-                // 重新加载设备列表，将新注册/修改的设备加入选项
-                loadDeviceList();
-
+                showMessage(data.message, 'success');
+                // 成功后重新加载设备列表
+                loadDevices();
+            } else if (response.status === 401) {
+                showMessage('未登录或会话过期，请重新登录。', 'error');
             } else {
-                // 失败
-                showMessage(data.message || '操作失败，请检查设备ID和登录状态。', 'error');
+                showMessage(data.message || '操作失败', 'error');
             }
         } catch (error) {
-            console.error('设备操作请求发送失败:', error);
-            showMessage('网络请求错误，请稍后再试。', 'error');
+            console.error('设备保存失败:', error);
+            showMessage('网络请求错误，无法保存设备', 'error');
         }
-    }
-
+    });
 
     /**
-     * 加载用户绑定的设备列表
+     * ⭐️ 修正：加载设备列表，恢复为手动选择
      */
-    async function loadDeviceList() {
+    async function loadDevices() {
         const selectEl = document.getElementById('active-device-select');
         const setButton = document.getElementById('set-active-device-button');
 
-        selectEl.innerHTML = '<option value="">-- 正在加载设备... --</option>';
+        selectEl.innerHTML = '<option value="">-- 加载中 --</option>';
         selectEl.disabled = true;
         setButton.disabled = true;
 
         try {
             const response = await fetch('/api/myDevices');
-
             if (response.status === 401) {
-                showMessage('未登录：无法加载设备列表', 'error', 'device-select-message');
-                selectEl.innerHTML = '<option value="">-- 请先登录 --</option>';
+                showMessage('未登录，请先登录', 'error', 'device-select-message');
+                selectEl.innerHTML = '<option value="">-- 请登录 --</option>';
                 return;
             }
+            if (!response.ok) throw new Error('网络错误');
 
             const devices = await response.json();
 
             if (devices.length === 0) {
-                showMessage('您尚未绑定任何设备', 'info', 'device-select-message');
-                selectEl.innerHTML = '<option value="">-- 无可用设备 --</option>';
+                selectEl.innerHTML = '<option value="">-- 暂无设备 --</option>';
+                showMessage('您还没有注册任何设备，请先注册。', 'warning', 'device-select-message');
                 return;
             }
 
-            // 填充下拉列表
-            selectEl.innerHTML = '<option value="">-- 请选择一个设备 --</option>';
-            devices.forEach(device => {
+            selectEl.innerHTML = ''; // 清空加载状态
+            let firstDeviceId = null;
+
+            devices.forEach((device, index) => {
                 const option = document.createElement('option');
                 option.value = device.deviceId;
-                option.textContent = `${device.deviceName} (ID: ${device.deviceId})`;
+                option.textContent = device.deviceName + ' (' + device.deviceId + ')';
                 selectEl.appendChild(option);
+
+                if (index === 0) {
+                    firstDeviceId = device.deviceId;
+                }
             });
+
+            // 修正点：只选中第一个设备，不自动设置和跳转
+            if (firstDeviceId) {
+                selectEl.value = firstDeviceId;
+            }
+
+            showMessage('设备列表已加载完毕，请选择您想要查看的设备。', 'info', 'device-select-message');
 
             selectEl.disabled = false;
             setButton.disabled = false;
-            //showMessage('设备列表加载成功，请选择一个设备设为活跃设备', 'info', 'device-select-message');
 
         } catch (error) {
             console.error('获取设备列表失败:', error);
@@ -239,7 +220,7 @@
     }
 
     /**
-     * 设置当前选择的设备为活跃设备
+     * 修正后的函数：用于用户手动点击“设为当前设备并跳转主页”按钮时使用
      */
     async function setActiveDevice() {
         const selectEl = document.getElementById('active-device-select');
@@ -269,10 +250,16 @@
                 showMessage(data.message || '设置当前设备失败', 'error', 'device-select-message');
             }
         } catch (error) {
-            console.error('设置活跃设备请求失败:', error);
-            showMessage('网络请求错误，请稍后再试。', 'error', 'device-select-message');
+            console.error('设置当前设备失败:', error);
+            showMessage('网络请求错误，无法设置当前设备', 'error', 'device-select-message');
         }
     }
+
+    // 将手动设置函数绑定到按钮
+    document.getElementById('set-active-device-button').addEventListener('click', setActiveDevice);
+
+    // 确保页面加载时调用
+    loadDevices();
 </script>
 
 </body>
