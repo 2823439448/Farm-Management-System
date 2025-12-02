@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设备历史数据</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-zoom@2.0.1/dist/chartjs-plugin-zoom.min.js"></script>
+    <style>
+        body {
+            background-color: #f4f7f6;
+        }
+        .container-fluid {
+            padding-top: 20px;
+        }
+        .card-header {
+            background-color: #e9ecef;
+            font-weight: bold;
+        }
+        .chart-container {
+            /* 设定图表容器高度 */
+            height: 350px;
+            position: relative;
+        }
+        /* 初始隐藏表格 */
+        #historyTable {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container-fluid">
+    <h2 class="mb-4">📈 <span id="deviceNameDisplay">设备</span> 历史数据</h2>
+
+    <div class="card mb-4">
+        <div class="card-header">数据筛选</div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+
+                <div class="col-md-3">
+                    <label for="deviceIdSelect" class="form-label">选择设备</label>
+                    <select class="form-select" id="deviceIdSelect">
+                        <option value="">正在加载设备...</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="timeRangeSelect" class="form-label">快速选择</label>
+                    <select class="form-select" id="timeRangeSelect">
+                        <option value="day" selected>近 24 小时</option>
+                        <option value="week">近 7 天</option>
+                        <option value="month">近 30 天</option>
+                        <option value="all">所有数据 (约 2 年)</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="granularitySelect" class="form-label">数据粒度/聚合</label>
+                    <select class="form-select" id="granularitySelect">
+                        <option value="minute">分 (原始数据)</option>
+                        <option value="hour">时 (原始数据)</option>
+                        <option value="day" selected>日 (日平均)</option>
+                        <option value="month">月 (月平均)</option>
+                        <option value="year">年 (年平均)</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <button class="btn btn-primary w-100" id="queryDataBtn">查询数据</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span>数据曲线图</span>
+            <div>
+                <button class="btn btn-sm btn-outline-secondary me-2" id="resetZoomBtn">重置缩放</button>
+                <button class="btn btn-sm btn-outline-info" id="toggleViewBtn">查看数据表</button>
+            </div>
+        </div>
+        <div class="card-body">
+            <div id="loadingIndicator" class="text-center p-5" style="display: none;">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Loading...</span>
+                </div>
+                <p class="mt-2">正在加载历史数据...</p>
+            </div>
+
+            <h5 class="mt-2">温度趋势 (°C)</h5>
+            <div id="tempChartContainer" class="chart-container mb-4" style="display: none;">
+                <canvas id="tempHistoryChart"></canvas>
+            </div>
+
+            <h5 class="mt-2">湿度趋势 (%)</h5>
+            <div id="humidChartContainer" class="chart-container mb-4" style="display: none;">
+                <canvas id="humidHistoryChart"></canvas>
+            </div>
+
+            <h5 class="mt-2">光照趋势 (Lux)</h5>
+            <div id="lightChartContainer" class="chart-container" style="display: none;">
+                <canvas id="lightHistoryChart"></canvas>
+            </div>
+
+        </div>
+    </div>
+
+    <div class="card mb-4" id="historyTable">
+        <div class="card-header">历史数据表格</div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                    <tr>
+                        <th>时间</th>
+                        <th>温度 (°C)</th>
+                        <th>湿度 (%)</th>
+                        <th>光照 (Lux)</th>
+                    </tr>
+                    </thead>
+                    <tbody id="historyTableBody">
+                    <tr><td colspan="4" class="text-center">请先查询数据</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // --- 全局变量 ---
+    const API_URL = '/api/device-history';
+    const DEVICE_LIST_API = '/api/myDevices';
+    let tempHistoryChart = null;
+    let humidHistoryChart = null;
+    let lightHistoryChart = null; // ⚠️ 新增：光照图表实例
+
+
+    // --- 辅助函数：根据粒度格式化时间 ---
+    function formatTimeLabel(timestamp, granularity) {
+        const date = new Date(timestamp);
+        const year = date.getFullYear();
+        const month = (date.getMonth() + 1).toString().padStart(2, '0');
+        const day = date.getDate().toString().padStart(2, '0');
+        const hour = date.getHours().toString().padStart(2, '0');
+        const minute = date.getMinutes().toString().padStart(2, '0');
+        const second = date.getSeconds().toString().padStart(2, '0');
+
+        switch (granularity) {
+            case 'minute':
+                return `${month}-${day} ${hour}:${minute}:${second}`;
+            case 'hour':
+                return `${month}-${day} ${hour}:00`;
+            case 'day':
+                return `${year}-${month}-${day}`;
+            case 'month':
+                return `${year}-${month}`;
+            case 'year':
+                return `${year}`;
+            default:
+                return date.toLocaleString();
+        }
+    }
+
+    // --- Chart.js 初始化函数 (通用) ---
+    function initializeChart(chartId, labels, data, labelText, color, yAxisMin) {
+        const ctx = document.getElementById(chartId);
+        if (!ctx) return null;
+
+        let chartInstance;
+        // 销毁旧实例 (根据 ID 销毁相应的全局变量)
+        if (chartId === 'tempHistoryChart' && tempHistoryChart) {
+            tempHistoryChart.destroy();
+        } else if (chartId === 'humidHistoryChart' && humidHistoryChart) {
+            humidHistoryChart.destroy();
+        } else if (chartId === 'lightHistoryChart' && lightHistoryChart) { // ⚠️ 新增：光照图表销毁
+            lightHistoryChart.destroy();
+        }
+
+        chartInstance = new Chart(ctx.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: labelText,
+                        data: data,
+                        borderColor: color,
+                        backgroundColor: color.replace('rgb', 'rgba').replace(')', ', 0.5)'),
+                        tension: 0.1,
+                        pointRadius: 1
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    title: { display: false },
+                    legend: { display: false },
+                    zoom: {
+                        zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: 'x' },
+                        pan: { enabled: true, mode: 'x' }
+                    }
+                },
+                scales: {
+                    x: { title: { display: true, text: '时间' } },
+                    y: {
+                        type: 'linear', display: true, position: 'left',
+                        title: { display: true, text: labelText, color: color },
+                        min: yAxisMin,
+                    }
+                }
+            }
+        });
+
+        return chartInstance;
+    }
+
+    // --- 获取用户绑定的设备列表并填充下拉框 ---
+    async function fetchDeviceList() {
+        // ... (保持不变)
+        const selectEl = document.getElementById('deviceIdSelect');
+        selectEl.innerHTML = '<option value="">正在加载设备...</option>';
+
+        try {
+            const response = await fetch(DEVICE_LIST_API, {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            if (response.status === 401) {
+                alert("❌ 错误 401: 未登录或会话过期，请重新登录。");
+                return [];
+            } else if (!response.ok) {
+                throw new Error(`HTTP 错误! 状态码: ${response.status}`);
+            }
+
+            const devices = await response.json();
+
+            if (devices.length === 0) {
+                selectEl.innerHTML = '<option value="">未绑定设备</option>';
+                document.getElementById('deviceNameDisplay').textContent = "未绑定设备";
+                return [];
+            }
+
+            selectEl.innerHTML = '';
+            devices.forEach((device, index) => {
+                const option = document.createElement('option');
+                option.value = device.deviceId;
+                option.textContent = `${device.deviceName} (ID: ${device.deviceId})`;
+                if (index === 0) {
+                    option.selected = true;
+                }
+                selectEl.appendChild(option);
+            });
+
+            document.getElementById('deviceNameDisplay').textContent =
+                selectEl.options[selectEl.selectedIndex].text;
+
+            return devices;
+
+        } catch (error) {
+            console.error("❌ 获取设备列表失败:", error);
+            selectEl.innerHTML = '<option value="">加载设备失败</option>';
+            return [];
+        }
+    }
+
+
+    // --- 获取历史数据函数 (核心修改) ---
+    async function fetchHistoryData() {
+        const deviceSelectEl = document.getElementById('deviceIdSelect');
+        const deviceId = deviceSelectEl.value;
+        const timeRange = document.getElementById('timeRangeSelect').value;
+        const granularity = document.getElementById('granularitySelect').value;
+
+        if (!deviceId) {
+            document.getElementById('loadingIndicator').style.display = 'none';
+            alert("请先选择一个设备。");
+            return;
+        }
+
+        // 1. 显示加载指示器，隐藏图表容器
+        document.getElementById('tempChartContainer').style.display = 'none';
+        document.getElementById('humidChartContainer').style.display = 'none';
+        document.getElementById('lightChartContainer').style.display = 'none'; // ⚠️ 新增：光照图表容器隐藏
+        document.getElementById('loadingIndicator').style.display = 'block';
+        document.getElementById('historyTableBody').innerHTML = `<tr><td colspan="4" class="text-center">正在加载...</td></tr>`;
+        document.getElementById('deviceNameDisplay').textContent =
+            deviceSelectEl.options[deviceSelectEl.selectedIndex].text;
+
+        try {
+            // 2. API 请求参数
+            const queryParams = new URLSearchParams({
+                deviceId: deviceId,
+                range: timeRange,
+                granularity: granularity
+            }).toString();
+
+            const response = await fetch(`${API_URL}?${queryParams}`, {
+                method: 'GET',
+                credentials: 'include'
+            });
+
+            if (response.status === 401) {
+                alert("❌ 错误 401: 未登录或会话过期，请重新登录。");
+                throw new Error("Unauthorized");
+            } else if (response.status === 404) {
+                alert("❌ HTTP 错误! 状态码: 404。请检查后端 `/api/device-history` 接口是否正确启动和映射。");
+                throw new Error(`HTTP Error! Status: ${response.status}`);
+            } else if (!response.ok) {
+                alert(`❌ HTTP 错误! 状态码: ${response.status}。请检查后端日志。`);
+                throw new Error(`HTTP Error! Status: ${response.status}`);
+            }
+
+            const historyData = await response.json();
+
+            // 3. 数据处理
+            if (historyData.length === 0) {
+                alert("⚠️ 未查询到历史数据。请检查数据库是否有该设备的数据或时间范围是否正确。");
+                document.getElementById('historyTableBody').innerHTML = `<tr><td colspan="4" class="text-center">未查询到数据</td></tr>`;
+
+                if (tempHistoryChart) tempHistoryChart.destroy();
+                if (humidHistoryChart) humidHistoryChart.destroy();
+                if (lightHistoryChart) lightHistoryChart.destroy(); // ⚠️ 新增：销毁光照图表
+
+                return;
+            }
+
+            const timeLabels = [];
+            const tempData = [];
+            const humidityData = [];
+            const lightData = []; // ⚠️ 新增：光照数据数组
+            let tableRowsHtml = '';
+
+            historyData.forEach(data => {
+                const timeString = formatTimeLabel(data.timestamp, granularity);
+
+                timeLabels.push(timeString);
+                // 确保 null 值正确处理
+                tempData.push(Number.isFinite(data.temperature) && data.temperature !== null ? data.temperature : null);
+                humidityData.push(Number.isFinite(data.humidity) && data.humidity !== null ? data.humidity : null);
+                lightData.push(Number.isFinite(data.light) && data.light !== null ? data.light : null); // ⚠️ 新增：处理光照数据
+
+                // 准备表格行数据
+                tableRowsHtml += `
+                    <tr>
+                        <td>${timeString}</td>
+                        <td>${data.temperature !== undefined && data.temperature !== null ? data.temperature.toFixed(1) : '-'}</td>
+                        <td>${data.humidity !== undefined && data.humidity !== null ? data.humidity.toFixed(0) : '-'}</td>
+                        <td>${data.light !== undefined && data.light !== null ? data.light.toFixed(1) : '-'}</td>
+                    </tr>
+                `;
+            });
+
+            // 4. 更新图表和表格 (分别创建和更新图表)
+            tempHistoryChart = initializeChart(
+                'tempHistoryChart',
+                timeLabels,
+                tempData,
+                '温度 (°C)',
+                'rgb(255, 99, 132)',
+                0 // 最小值为 0，最大值自适应
+            );
+
+            humidHistoryChart = initializeChart(
+                'humidHistoryChart',
+                timeLabels,
+                humidityData,
+                '湿度 (%)',
+                'rgb(54, 162, 235)',
+                0 // 最小值为 0，最大值自适应
+            );
+
+            // ⚠️ 新增：初始化光照图表
+            lightHistoryChart = initializeChart(
+                'lightHistoryChart',
+                timeLabels,
+                lightData,
+                '光照 (Lux)',
+                'rgb(255, 205, 86)', // 选用黄色系
+                0 // 最小值为 0，最大值自适应
+            );
+
+            document.getElementById('historyTableBody').innerHTML = tableRowsHtml;
+
+        } catch (error) {
+            console.error("❌ 获取历史数据失败:", error);
+            // ...
+        } finally {
+            // 5. 隐藏加载指示器，显示图表容器
+            document.getElementById('loadingIndicator').style.display = 'none';
+            if (tempHistoryChart) document.getElementById('tempChartContainer').style.display = 'block';
+            if (humidHistoryChart) document.getElementById('humidChartContainer').style.display = 'block';
+            if (lightHistoryChart) document.getElementById('lightChartContainer').style.display = 'block'; // ⚠️ 新增：显示光照图表容器
+        }
+    }
+
+    // --- 事件监听器 ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        // 1. 加载设备列表
+        const devices = await fetchDeviceList();
+
+        // 2. 如果成功加载了设备，则默认查询第一个设备的实时数据
+        if (devices && devices.length > 0) {
+            fetchHistoryData();
+        }
+
+        // 绑定查询按钮事件
+        document.getElementById('queryDataBtn').addEventListener('click', fetchHistoryData);
+
+        // 绑定切换设备事件
+        document.getElementById('deviceIdSelect').addEventListener('change', fetchHistoryData);
+
+        // 绑定切换粒度事件
+        document.getElementById('granularitySelect').addEventListener('change', fetchHistoryData);
+
+        // 绑定重置缩放按钮事件
+        document.getElementById('resetZoomBtn').addEventListener('click', () => {
+            if (tempHistoryChart) {
+                tempHistoryChart.resetZoom();
+            }
+            if (humidHistoryChart) {
+                humidHistoryChart.resetZoom();
+            }
+            if (lightHistoryChart) { // ⚠️ 新增：重置光照图表缩放
+                lightHistoryChart.resetZoom();
+            }
+        });
+
+        // 绑定切换视图按钮事件
+        document.getElementById('toggleViewBtn').addEventListener('click', (e) => {
+            const tableEl = document.getElementById('historyTable');
+            const buttonEl = e.target;
+
+            if (tableEl.style.display === 'none') {
+                tableEl.style.display = 'block';
+                buttonEl.textContent = '隐藏数据表';
+            } else {
+                tableEl.style.display = 'none';
+                buttonEl.textContent = '查看数据表';
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
