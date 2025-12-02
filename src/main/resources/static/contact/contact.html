@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>联系我们 | 询问作者</title>
+    <style>
+        /* 1. 全屏背景设置 */
+        body {
+            background-image: url('/images/askme.png'); /* 您的背景图片路径 */
+            background-size: cover; /* 铺满整个屏幕 */
+            background-repeat: no-repeat; /* 不重复 */
+            background-attachment: fixed; /* 固定背景 */
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            display: flex; /* 启用 Flexbox */
+            justify-content: center; /* 水平居中 */
+            align-items: center; /* 垂直居中 */
+            min-height: 100vh; /* 确保占据整个视口高度 */
+        }
+
+        /* 2. 居中容器卡片样式 */
+        .contact-container {
+            width: 90%;
+            max-width: 450px; /* 限制最大宽度 */
+            padding: 40px 30px;
+            border-radius: 12px;
+            /* 半透明背景，略微透出背景图 */
+            background-color: rgba(255, 255, 255, 0.85);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2); /* 柔和阴影 */
+            text-align: center;
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
+        }
+
+        p {
+            color: #555;
+            margin-bottom: 30px;
+            font-size: 1.1rem;
+            line-height: 1.6;
+        }
+
+        /* 3. 按钮/链接样式 (模仿 Bootstrap primary button) */
+        .github-link {
+            display: inline-block;
+            padding: 12px 25px;
+            margin-top: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fff;
+            background-color: #333; /* GitHub 常用深色 */
+            border-radius: 6px;
+            text-decoration: none; /* 移除下划线 */
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        .github-link:hover {
+            background-color: #000;
+            transform: translateY(-2px);
+        }
+
+        .github-link:active {
+            transform: translateY(0);
+        }
+
+        /* 4. GitHub 图标 (使用 Emoji 代替，如果需要实际图标，则需要引入字体库) */
+        .icon {
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="contact-container">
+    <h2>🔗 联系我们 / 农场管理系统</h2>
+
+    <p>
+        感谢您使用本系统。如果您对项目有任何疑问、建议，或者想要了解更多开发细节，欢迎通过以下链接访问本项目的 GitHub 仓库：
+    </p>
+
+    <a href="https://github.com/2823439448/Farm-Management-System"
+       target="_blank"
+       class="github-link">
+        <span class="icon">🚀</span> 访问 GitHub 项目主页
+    </a>
+
+    <p style="margin-top: 30px; font-size: 0.9rem; color: #777;">
+        点击链接将跳转到外部网站，感谢您的关注！
+    </p>
+</div>
+
+</body>
+</html>
