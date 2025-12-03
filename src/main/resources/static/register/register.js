@@ -40,7 +40,7 @@ async function handleRegister(event) {
         // 检查HTTP状态码
         if (response.ok) {
             // 注册成功
-            alert(`恭喜您，注册成功！用户名: ${username}`);
+            //alert(`恭喜您，注册成功！用户名: ${username}`);
             // 成功后跳转到登录页面
             window.location.href = '/login/login.html';
             return true;
