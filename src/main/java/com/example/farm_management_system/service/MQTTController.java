@@ -30,6 +30,10 @@ public class MQTTController {
     @Value("${mqtt.client-id-prefix}")
     private String clientIdPrefix;
 
+    // ⭐️ 新增配置项：设备控制主题前缀
+    @Value("${mqtt.to-device-topic-prefix}")
+    private String toDeviceTopicPrefix;
+
     private MqttClient client;
 
     @PostConstruct
@@ -42,7 +46,6 @@ public class MQTTController {
      * ⭐️ 修复点：更健壮的连接和重连逻辑
      */
     private void connectAndSubscribe() {
-        final int MAX_RETRIES = 5; // 达到最大重试次数后，如果仍然失败，则停止循环
         final long RETRY_DELAY_MS = 5000; // 每次重连间隔 5 秒
 
         while (true) { // 无限循环，保持连接
@@ -55,7 +58,6 @@ public class MQTTController {
                 if (!client.isConnected()) {
                     MqttConnectOptions options = new MqttConnectOptions();
                     options.setCleanSession(true); // 每次连接都是新的会话
-                    // ❗ 这里我们不依赖 Paho 的自动重连，而是用外层 while(true) 循环来控制
 
                     System.out.println("⚠️ 尝试连接 MQTT...");
                     client.connect(options);
@@ -74,10 +76,6 @@ public class MQTTController {
 
             } catch (MqttException e) {
                 System.err.println("❌ MQTT 连接/订阅失败: " + e.getMessage());
-
-                // 增加重试计数器，但因为是无限循环，这里主要是为了打印日志
-                // 如果需要严格的 MAX_RETRIES 退出，则需要稍微修改 while(true) 循环的结构
-
                 System.out.println("⚠️ 正在重试连接...");
 
                 // 等待一段时间后再次尝试连接
@@ -94,6 +92,25 @@ public class MQTTController {
                 break;
             }
         }
+    }
+
+    /**
+     * ⭐️ 新增方法：发布消息到控制主题
+     * @param deviceId 目标设备ID
+     * @param jsonMessage 要发送的 JSON 消息体
+     */
+    public void publish(String deviceId, String jsonMessage) throws MqttException {
+        if (client == null || !client.isConnected()) {
+            throw new MqttException(new Throwable("MQTT 客户端未连接"));
+        }
+
+        // 目标主题：dlc/farm_todev/deviceId
+        String topic = toDeviceTopicPrefix + deviceId;
+        MqttMessage message = new MqttMessage(jsonMessage.getBytes());
+        message.setQos(1); // 保证消息送达 (QoS 1)
+
+        System.out.println("➡️ 发送控制指令到主题: " + topic + ", 消息: " + jsonMessage);
+        client.publish(topic, message);
     }
 
     /**
