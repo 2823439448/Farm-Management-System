@@ -1,4 +1,6 @@
-// 文件: index.js (最终稳定版：修复 Chart.js 无法自动更新的 Bug)
+// 文件: index.js (最终稳定版：包含自动设置默认设备和修复 Chart.js 的 Bug)
+// ⭐️ 修正点：新增 sendControlCommand 函数，用于统一发送指令
+// ⭐️ 修正点：修改 setHumidBtn, heatBtn, checkAICommand 调用 sendControlCommand
 
 const MAX_DATA_POINTS = 60;
 
@@ -95,12 +97,11 @@ document.addEventListener('DOMContentLoaded', function() {
     fetchData();
     setInterval(fetchData, 5000);
 
-    // 交互事件处理 (保持不变)
+    // 交互事件处理 (修改为调用 sendControlCommand)
     document.getElementById('setHumidBtn').addEventListener('click', () => {
         const target = document.getElementById('targetHumid').value;
         if (target && !isNaN(target)) {
-            alert(`💦 提高湿度指令已发送！目标湿度设定为 ${target}%。`);
-            console.log(`发送提高湿度指令，目标 ${target}%...`);
+            sendControlCommand('humid', parseFloat(target));
         } else {
             alert('请输入有效的目标湿度！');
         }
@@ -109,8 +110,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('heatBtn').addEventListener('click', () => {
         const target = document.getElementById('targetTemp').value;
         if (target && !isNaN(target)) {
-            alert(`🔥 升温指令已发送！目标温度设定为 ${target}℃。`);
-            console.log(`发送升温指令，目标 ${target}℃...`);
+            sendControlCommand('heat', parseFloat(target));
         } else {
             alert('请输入有效的目标温度！');
         }
@@ -130,9 +130,134 @@ document.addEventListener('DOMContentLoaded', function() {
     // setInterval(checkAICommand, 1000);
 });
 
+/**
+ * ⭐️ 新增函数：发送控制指令到后端
+ * @param {string} type - 控制类型 ('heat' 或 'humid')
+ * @param {number} value - 目标值
+ */
+async function sendControlCommand(type, value) {
+    if (isNaN(value)) {
+        alert('无效的控制值！');
+        return;
+    }
 
-// ---- 修正后的 fetchData() ----
-// 目标：使用设备时间戳，并通过去重检查来确保图表流动和精度。
+    try {
+        const response = await fetch('/api/control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                type: type,
+                value: value
+            }),
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            const actionText = type === 'heat' ? '升温指令' : '提高湿度指令';
+            const unit = type === 'heat' ? '℃' : '%';
+            alert(`✅ ${actionText}已发送！目标设定为 ${value}${unit}。`);
+            console.log(`发送指令成功: ${data.message}`);
+        } else if (response.status === 401) {
+            alert('❌ 未登录或会话过期，请重新登录。');
+        } else {
+            alert(`❌ 指令发送失败: ${data.message || '未知错误'}`);
+            console.error('发送指令失败:', data.message);
+        }
+    } catch (error) {
+        console.error('网络请求错误，无法发送指令:', error);
+        alert('❌ 网络请求错误，无法发送指令。');
+    }
+}
+
+
+// ⭐️ 修正后的 checkAICommand：调用 sendControlCommand
+function checkAICommand() {
+    const aiSetTemp = localStorage.getItem("aiSetTemp");
+    const aiAutoHeat = localStorage.getItem("aiAutoHeat");
+    const aiSetHumid = localStorage.getItem("aiSetHumid");
+    const aiAutoHumid = localStorage.getItem("aiAutoHumid");
+
+    let tempExecuted = false;
+
+    if (aiSetTemp && aiAutoHeat === "true" && !isNaN(parseFloat(aiSetTemp))) {
+        const targetTemp = parseFloat(aiSetTemp);
+        const targetTempInput = document.getElementById('targetTemp');
+        targetTempInput.value = targetTemp;
+
+        // 调用新的发送函数
+        setTimeout(() => {
+            sendControlCommand('heat', targetTemp);
+            localStorage.removeItem("aiSetTemp");
+            localStorage.removeItem("aiAutoHeat");
+            console.log(`AI助手指令(1/2)已执行：目标温度设置为 ${aiSetTemp}℃ 并发送升温指令。`);
+        }, 500);
+        tempExecuted = true;
+    } else {
+        localStorage.removeItem("aiSetTemp");
+        localStorage.removeItem("aiAutoHeat");
+    }
+
+    if (aiSetHumid && aiAutoHumid === "true" && !isNaN(parseFloat(aiSetHumid))) {
+        const targetHumid = parseFloat(aiSetHumid);
+        const targetHumidInput = document.getElementById('targetHumid');
+        targetHumidInput.value = targetHumid;
+
+        const delay = tempExecuted ? 1500 : 500;
+
+        // 调用新的发送函数
+        setTimeout(() => {
+            sendControlCommand('humid', targetHumid);
+            localStorage.removeItem("aiSetHumid");
+            localStorage.removeItem("aiAutoHumid");
+            console.log(`AI助手指令(${tempExecuted ? '2/2' : '1/1'})已执行：目标湿度设置为 ${aiSetHumid}% 并发送提高湿度指令。`);
+        }, delay);
+    } else {
+        localStorage.removeItem("aiSetHumid");
+        localStorage.removeItem("aiAutoHumid");
+    }
+}
+
+
+// ... (trySetDefaultDevice, fetchData, fetchWeather, displayWeather 函数保持不变) ...
+// 为避免冗长，此处省略了未修改的方法，请将新增方法和修改后的方法加入到原文件中。
+
+// ⭐️ 原始文件中的 trySetDefaultDevice 函数 (未修改)
+async function trySetDefaultDevice() {
+    try {
+        const response = await fetch('/api/setDefaultActiveDevice', {
+            method: 'GET',
+            credentials: 'include'
+        });
+        if (response.ok) {
+            console.log("✅ 后端已自动设置默认活跃设备，即将重新加载数据。");
+            const deviceNameEl = document.getElementById('deviceName');
+            if(deviceNameEl) {
+                deviceNameEl.textContent = "已设置默认设备，正在加载数据...";
+            }
+            return true;
+        } else {
+            const data = await response.json();
+            // 如果是因为“用户没有注册任何设备”而失败
+            if (response.status === 404) {
+                const deviceNameEl = document.getElementById('deviceName');
+                if(deviceNameEl) deviceNameEl.textContent = "请先在设备管理页注册设备";
+            } else {
+                const deviceNameEl = document.getElementById('deviceName');
+                if(deviceNameEl) deviceNameEl.textContent = data.message || "请在设备管理页选择一个活跃设备";
+            }
+            console.warn("⚠️ 自动设置默认设备失败：", data.message);
+            return false;
+        }
+    } catch (error) {
+        console.error("❌ 尝试设置默认设备时发生网络错误:", error);
+        return false;
+    }
+}
+
+
+// ⭐️ 原始文件中的 fetchData 函数 (未修改)
 async function fetchData() {
     let shouldUpdateChart = false;
 
@@ -144,10 +269,12 @@ async function fetchData() {
 
         let devicesData = [];
         let isErrorOrEmpty = false;
+        let isUnauthorized = false;
 
         if (response.status === 401) {
             console.error("❌ 错误 401: 未登录或会话过期，请重新登录。");
             isErrorOrEmpty = true;
+            isUnauthorized = true;
         } else if (!response.ok) {
             console.error(`❌ HTTP 错误! 状态码: ${response.status}`);
             throw new Error(`HTTP 错误! 状态码: ${response.status}`);
@@ -155,24 +282,31 @@ async function fetchData() {
             devicesData = await response.json();
         }
 
+        // --- 错误或空数据处理 ---
         if (devicesData.length === 0 || isErrorOrEmpty) {
-            // **修正 1：如果获取失败，不再清空数组，而是保留历史数据**
+
+            const deviceNameEl = document.getElementById('deviceName');
+
+            if (isUnauthorized) {
+                if(deviceNameEl) deviceNameEl.textContent = "未登录或会话过期";
+            } else if (!isErrorOrEmpty && devicesData.length === 0) {
+                // ⭐️ 核心修正：如果用户已登录但没有活跃设备，则尝试设置默认设备
+                const success = await trySetDefaultDevice();
+                if (success) {
+                    return fetchData(); // 尝试重新获取数据
+                }
+                // 如果 trySetDefaultDevice 失败，它已经设置了设备名称的错误信息
+            } else if (devicesData.length === 0) {
+                if(deviceNameEl) deviceNameEl.textContent = "请在设备管理页选择一个活跃设备";
+            }
+
+
             // 只有当数组为空时，才设置占位符
             if (timeLabels.length === 0) {
                 timeLabels.push('无数据');
                 tempData.push(null);
                 humidityData.push(null);
                 shouldUpdateChart = true;
-            }
-
-            const deviceNameEl = document.getElementById('deviceName');
-            if(deviceNameEl) {
-                // ⚠️ 修改提示信息：根据状态给出更精确的提示
-                if (isErrorOrEmpty) {
-                    deviceNameEl.textContent = "未登录或会话过期";
-                } else if (devicesData.length === 0) {
-                    deviceNameEl.textContent = "请在设备管理页选择一个活跃设备";
-                }
             }
 
             // 如果只有占位符，强制更新一次图表，否则不更新（避免闪烁）
@@ -183,7 +317,6 @@ async function fetchData() {
         }
 
         // --- 有数据时的处理 ---
-        // ⚠️ 简化：由于后端只返回当前活跃设备数据，devicesData[0] 即可
         const latestData = devicesData[0];
 
         const newTemp = Number(latestData.temperature);
@@ -191,14 +324,13 @@ async function fetchData() {
         const newLight = Number(latestData.light);
         const deviceName = latestData.deviceName || "未知设备";
 
-        // **修正 1：使用设备时间戳（API 返回的 timestamp）**
+        // 使用设备时间戳（API 返回的 timestamp）
         const date = new Date(latestData.timestamp);
         const timeString = `${date.getHours().toString().padStart(2,'0')}:${date.getMinutes().toString().padStart(2,'0')}:${date.getSeconds().toString().padStart(2,'0')}`;
 
-        // **修正 2：检查是否与数组中的最后一个点重复**
+        // 检查是否与数组中的最后一个点重复
         const lastIndex = timeLabels.length - 1;
 
-        // 检查时间戳和数值是否都相同
         if (lastIndex >= 0 && timeLabels[lastIndex] === timeString &&
             tempData[lastIndex] === newTemp && humidityData[lastIndex] === newHumid) {
 
@@ -260,7 +392,7 @@ async function fetchData() {
         }
     }
 }
-// --- fetchWeather / displayWeather / checkAICommand (保持不变) ---
+// --- fetchWeather / displayWeather (保持不变) ---
 
 async function fetchWeather(city) {
     const weatherInfoDiv = document.getElementById('weatherInfo');
@@ -296,52 +428,4 @@ function displayWeather(data) {
         <p>💧 湿度：${data.current.humidity} %</p>
         <p>💨 风速：${data.current.wind_kph} km/h</p>
     `;
-}
-
-function checkAICommand() {
-    const aiSetTemp = localStorage.getItem("aiSetTemp");
-    const aiAutoHeat = localStorage.getItem("aiAutoHeat");
-    const aiSetHumid = localStorage.getItem("aiSetHumid");
-    const aiAutoHumid = localStorage.getItem("aiAutoHumid");
-
-    let tempExecuted = false;
-
-    if (aiSetTemp && aiAutoHeat === "true" && !isNaN(parseFloat(aiSetTemp))) {
-        const targetTempInput = document.getElementById('targetTemp');
-        if (!isNaN(parseFloat(aiSetTemp))) { targetTempInput.value = parseFloat(aiSetTemp); }
-        else {
-            console.error("AI 设定的温度值无效:", aiSetTemp);
-            localStorage.removeItem("aiSetTemp");
-            localStorage.removeItem("aiAutoHeat");
-            return;
-        }
-
-        setTimeout(() => {
-            document.getElementById('heatBtn').click();
-            localStorage.removeItem("aiSetTemp");
-            localStorage.removeItem("aiAutoHeat");
-            console.log(`AI助手指令(1/2)已执行：目标温度设置为 ${aiSetTemp}℃ 并发送升温指令。`);
-        }, 500);
-        tempExecuted = true;
-    } else {
-        localStorage.removeItem("aiSetTemp");
-        localStorage.removeItem("aiAutoHeat");
-    }
-
-    if (aiSetHumid && aiAutoHumid === "true" && !isNaN(parseFloat(aiSetHumid))) {
-        const targetHumidInput = document.getElementById('targetHumid');
-        targetHumidInput.value = parseFloat(aiSetHumid);
-
-        const delay = tempExecuted ? 1500 : 500;
-
-        setTimeout(() => {
-            document.getElementById('setHumidBtn').click();
-            localStorage.removeItem("aiSetHumid");
-            localStorage.removeItem("aiAutoHumid");
-            console.log(`AI助手指令(${tempExecuted ? '2/2' : '1/1'})已执行：目标湿度设置为 ${aiSetHumid}% 并发送提高湿度指令。`);
-        }, delay);
-    } else {
-        localStorage.removeItem("aiSetHumid");
-        localStorage.removeItem("aiAutoHumid");
-    }
 }
