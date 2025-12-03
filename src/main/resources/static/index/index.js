@@ -1,6 +1,7 @@
 // 文件: index.js (最终稳定版：包含自动设置默认设备和修复 Chart.js 的 Bug)
 // ⭐️ 修正点：新增 sendControlCommand 函数，用于统一发送指令
 // ⭐️ 修正点：修改 setHumidBtn, heatBtn, checkAICommand 调用 sendControlCommand
+// ⭐️ 性能优化：调整 DOMContentLoaded 内部的启动顺序，将 fetchWeather 移至最后
 
 const MAX_DATA_POINTS = 60;
 
@@ -93,7 +94,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // 启动数据获取循环
+    // ⭐️ 核心修改 1: 确保 fetchData 和 setInterval 在 DOMContentLoaded 内启动
+    // 这确保了核心传感器数据和图表能第一时间开始加载
     fetchData();
     setInterval(fetchData, 5000);
 
@@ -122,10 +124,14 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     document.getElementById('cityInput').value = DEFAULT_CITY;
+
+    // 启动 AI 助手检查 (AI指令检查，需要依赖最新的数据)
+    checkAICommand();
+
+    // ⭐️ 核心修改 2: 将 fetchWeather 放在核心数据加载 (fetchData) 和 UI 初始化之后启动
+    // 即使天气 API 响应慢，也不会阻碍主数据的加载和界面的响应
     fetchWeather(DEFAULT_CITY);
 
-    // 启动 AI 助手检查
-    checkAICommand();
     // 移除此处对 checkAICommand 的重复调用，防止双重提示
     // setInterval(checkAICommand, 1000);
 });
@@ -220,10 +226,7 @@ function checkAICommand() {
 }
 
 
-// ... (trySetDefaultDevice, fetchData, fetchWeather, displayWeather 函数保持不变) ...
-// 为避免冗长，此处省略了未修改的方法，请将新增方法和修改后的方法加入到原文件中。
-
-// ⭐️ 原始文件中的 trySetDefaultDevice 函数 (未修改)
+// ⭐️ 原始文件中的 trySetDefaultDevice 函数
 async function trySetDefaultDevice() {
     try {
         const response = await fetch('/api/setDefaultActiveDevice', {
@@ -257,7 +260,7 @@ async function trySetDefaultDevice() {
 }
 
 
-// ⭐️ 原始文件中的 fetchData 函数 (未修改)
+// ⭐️ 原始文件中的 fetchData 函数
 async function fetchData() {
     let shouldUpdateChart = false;
 
