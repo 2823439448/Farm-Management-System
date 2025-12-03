@@ -23,9 +23,6 @@ public class DeviceController {
     @Autowired
     private MQTTController mqttController;
 
-    // ... (saveDevice, getMyDevices, setActiveDevice, setDefaultActiveDevice 方法保持不变) ...
-    // 为避免冗长，此处省略了未修改的方法，请将新增方法加入到原文件中。
-
     // 注册或修改设备
     @PostMapping("/device/save")
     public ResponseEntity<Map<String, Object>> saveDevice(@RequestBody LoginRequest deviceRequest, HttpSession session) {
@@ -92,7 +89,7 @@ public class DeviceController {
         return ResponseEntity.ok(list);
     }
 
-    // ⭐️ 关键修复点：设置活跃设备，解决最新数据无数据的问题
+    // ⭐️ 设置活跃设备，解决最新数据无数据的问题
     @PostMapping("/api/setActiveDevice")
     public ResponseEntity<Map<String, Object>> setActiveDevice(@RequestBody Map<String, String> requestBody, HttpSession session) {
         Integer userId = (Integer) session.getAttribute("userId");
@@ -215,6 +212,40 @@ public class DeviceController {
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(Collections.singletonMap("message", "系统错误"), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * ⭐️ 新增接口：检查用户是否已注册设备
+     * 接口路径：/api/checkDeviceBinding
+     * 返回：{ "isBound": true/false }
+     *
+     * @param userId 从 login.js 中传递过来的用户 ID
+     */
+    @GetMapping("/api/checkDeviceBinding")
+    public ResponseEntity<Map<String, Boolean>> checkDeviceBinding(@RequestParam Integer userId) {
+        if (userId == null) {
+            // 如果 userId 为空，返回错误请求
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+
+        // 查询该用户拥有的设备数量
+        String checkSql = "SELECT COUNT(*) FROM devices WHERE user_id = ?";
+
+        try {
+            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, userId);
+            // 如果 count > 0，则认为已绑定设备
+            boolean isBound = (count != null && count > 0);
+
+            Map<String, Boolean> response = new HashMap<>();
+            response.put("isBound", isBound);
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            e.printStackTrace();
+            // 发生错误时，为了防止用户卡在登录页面，默认返回已绑定，让其跳转主页
+            // 实际项目中应考虑更好的错误处理
+            return ResponseEntity.ok(Collections.singletonMap("isBound", true));
         }
     }
 }
