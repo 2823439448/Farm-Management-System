@@ -1,6 +1,9 @@
 package com.example.farm_management_system.controller;
 
 import com.example.farm_management_system.model.LoginRequest; // 注意这里的包名
+import com.example.farm_management_system.service.MQTTController; // ⭐️ 导入 MQTT Controller
+import org.eclipse.paho.client.mqttv3.MqttException;
+import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -15,6 +18,13 @@ public class DeviceController {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    // ⭐️ 自动注入 MQTTController
+    @Autowired
+    private MQTTController mqttController;
+
+    // ... (saveDevice, getMyDevices, setActiveDevice, setDefaultActiveDevice 方法保持不变) ...
+    // 为避免冗长，此处省略了未修改的方法，请将新增方法加入到原文件中。
 
     // 注册或修改设备
     @PostMapping("/device/save")
@@ -149,6 +159,62 @@ public class DeviceController {
         } catch (Exception e) {
             e.printStackTrace();
             return new ResponseEntity<>(Collections.singletonMap("message", "系统错误，无法设置默认设备"), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * ⭐️ 新增接口：发送控制指令到设备
+     * 接口路径：/api/control
+     * 请求体：{ "type": "heat" | "humid", "value": 25.0 }
+     */
+    @PostMapping("/api/control")
+    public ResponseEntity<Map<String, Object>> controlDevice(@RequestBody Map<String, Object> requestBody, HttpSession session) {
+        Integer userId = (Integer) session.getAttribute("userId");
+        String activeDeviceId = (String) session.getAttribute("activeDeviceId");
+
+        if (userId == null) {
+            return new ResponseEntity<>(Collections.singletonMap("message", "未登录"), HttpStatus.UNAUTHORIZED);
+        }
+        if (activeDeviceId == null || activeDeviceId.trim().isEmpty()) {
+            return new ResponseEntity<>(Collections.singletonMap("message", "未选择活跃设备"), HttpStatus.BAD_REQUEST);
+        }
+
+        String type = (String) requestBody.get("type"); // "heat" 或 "humid"
+        Object value = requestBody.get("value"); // 目标值
+
+        if (type == null || value == null) {
+            return new ResponseEntity<>(Collections.singletonMap("message", "缺少控制类型或目标值"), HttpStatus.BAD_REQUEST);
+        }
+
+        // 构造 MQTT 消息体
+        Map<String, Object> message = new HashMap<>();
+        message.put("type", type);
+        message.put("value", value);
+        message.put("timestamp", System.currentTimeMillis()); // 添加时间戳
+
+        try {
+            // 校验设备归属 (防止未设置活跃设备但 activeDeviceId 被篡改)
+            String checkSql = "SELECT COUNT(*) FROM devices WHERE device_unique_id = ? AND user_id = ?";
+            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, activeDeviceId, userId);
+
+            if (count == null || count == 0) {
+                return new ResponseEntity<>(Collections.singletonMap("message", "该设备不属于您或不存在"), HttpStatus.FORBIDDEN);
+            }
+
+            // 发送 MQTT 消息
+            mqttController.publish(activeDeviceId, new JSONObject(message).toString());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "控制指令已发送到设备: " + activeDeviceId);
+            return ResponseEntity.ok(response);
+
+        } catch (MqttException e) {
+            System.err.println("MQTT 发送失败: " + e.getMessage());
+            return new ResponseEntity<>(Collections.singletonMap("message", "系统错误：MQTT 消息发送失败"), HttpStatus.INTERNAL_SERVER_ERROR);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return new ResponseEntity<>(Collections.singletonMap("message", "系统错误"), HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }
 }
