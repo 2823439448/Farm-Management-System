@@ -45,7 +45,7 @@
             line-height: 1.6;
         }
 
-        /* 3. 按钮/链接样式 (模仿 Bootstrap primary button) */
+        /* 3. GitHub 按钮/链接样式 (模仿 Bootstrap primary button) */
         .github-link {
             display: inline-block;
             padding: 12px 25px;
@@ -68,7 +68,30 @@
             transform: translateY(0);
         }
 
-        /* 4. GitHub 图标 (使用 Emoji 代替，如果需要实际图标，则需要引入字体库) */
+        /* 4. 新增：注销按钮样式 (使用红色系突出警示或操作) */
+        .logoff-link {
+            display: inline-block;
+            padding: 12px 25px;
+            margin-top: 20px; /* 增加上边距以和 GitHub 按钮分离 */
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: #fff;
+            background-color: #e74c3c; /* 红色 */
+            border-radius: 6px;
+            text-decoration: none;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+
+        .logoff-link:hover {
+            background-color: #c0392b; /* 更深的红色 */
+            transform: translateY(-2px);
+        }
+
+        .logoff-link:active {
+            transform: translateY(0);
+        }
+
+        /* 5. GitHub 图标 (使用 Emoji 代替，如果需要实际图标，则需要引入字体库) */
         .icon {
             margin-right: 8px;
         }
@@ -89,8 +112,13 @@
         <span class="icon">🚀</span> 访问 GitHub 项目主页
     </a>
 
+    <a href="/logout/logout.html"
+       class="logoff-link">
+        <span class="icon">🔒</span> 跳转到注销界面
+    </a>
+
     <p style="margin-top: 30px; font-size: 0.9rem; color: #777;">
-        点击链接将跳转到外部网站，感谢您的关注！
+        点击链接将跳转到外部网站或执行操作，感谢您的关注！
     </p>
 </div>
 
