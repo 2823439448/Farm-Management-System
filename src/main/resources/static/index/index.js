@@ -64,13 +64,19 @@ document.addEventListener('DOMContentLoaded', function() {
         options: {
             responsive: true,
             maintainAspectRatio: false,
+            // ⚠️ 核心修改 1: 将图表背景色设置为完全透明 (同 historydata)
+            backgroundColor: 'transparent',
             scales: {
                 yTemp: {
                     type: 'linear',
                     display: true,
                     position: 'left',
                     title: { display: true, text: '温度 (℃)' },
-                    suggestedMin: 20, suggestedMax: 35
+                    suggestedMin: 20, suggestedMax: 35,
+                    // ⚠️ 核心修改 2: 使网格线和刻度标签在透明背景下清晰可见
+                    grid: { color: 'rgba(0, 0, 0, 0.2)' },
+                    ticks: { color: '#333' },
+                    border: { display: false } // ⚠️ 新增：去除 Y 轴边框线
                 },
                 yHumid: {
                     type: 'linear',
@@ -78,7 +84,16 @@ document.addEventListener('DOMContentLoaded', function() {
                     position: 'right',
                     title: { display: true, text: '湿度 (%)' },
                     suggestedMin: 40, suggestedMax: 80,
-                    grid: { drawOnChartArea: false }
+                    // ⚠️ 核心修改 3: 更新网格线样式
+                    grid: { drawOnChartArea: false, color: 'rgba(0, 0, 0, 0.2)' },
+                    ticks: { color: '#333' },
+                    border: { display: false } // ⚠️ 新增：去除 Y 轴边框线
+                },
+                x: { // ⚠️ 核心修改 4: 新增 X 轴配置
+                    title: { display: true, text: '时间' },
+                    grid: { color: 'rgba(0, 0, 0, 0.2)' },
+                    ticks: { color: '#333' },
+                    border: { display: false } // ⚠️ 新增：去除 X 轴边框线
                 }
             },
             plugins: {
