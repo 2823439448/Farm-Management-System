@@ -2,6 +2,7 @@
 // ⭐️ 修正点：新增 sendControlCommand 函数，用于统一发送指令
 // ⭐️ 修正点：修改 setHumidBtn, heatBtn, checkAICommand 调用 sendControlCommand
 // ⭐️ 性能优化：调整 DOMContentLoaded 内部的启动顺序，将 fetchWeather 移至最后
+// 🔒 安全优化：移除前端 API_KEY，通过后端 /api/weather 接口调用
 
 const MAX_DATA_POINTS = 60;
 
@@ -10,7 +11,7 @@ let tempData = [];
 let humidityData = [];
 let chart;
 
-const API_KEY = '07f1b15756b74cfdb9c135254252511';
+// ⭐️ 移除了 API_KEY，安全性提升
 const DEFAULT_CITY = '成都';
 
 
@@ -257,7 +258,7 @@ async function trySetDefaultDevice() {
             return true;
         } else {
             const data = await response.json();
-            // 如果是因为“用户没有注册任何设备”而失败
+            // 如果是因为"用户没有注册任何设备"而失败
             if (response.status === 404) {
                 const deviceNameEl = document.getElementById('deviceName');
                 if(deviceNameEl) deviceNameEl.textContent = "请先在设备管理页注册设备";
@@ -327,7 +328,7 @@ async function fetchData() {
                 shouldUpdateChart = true;
             }
 
-            // 如果只有占位符，强制更新一次图表，否则不更新（避免闪烁）
+            // 如果只有占位符,强制更新一次图表，否则不更新（避免闪烁）
             if (timeLabels.length === 1 && timeLabels[0] === '无数据' && chart) {
                 chart.update('none');
             }
@@ -410,24 +411,41 @@ async function fetchData() {
         }
     }
 }
-// --- fetchWeather / displayWeather (保持不变) ---
 
+// --- fetchWeather / displayWeather (🔒 安全改进：通过后端调用) ---
+
+/**
+ * 🔒 安全改进：通过后端 API 获取天气信息
+ * 前端不再需要存储 API 密钥
+ */
 async function fetchWeather(city) {
     const weatherInfoDiv = document.getElementById('weatherInfo');
-    if (!API_KEY || API_KEY === "YOUR_API_KEY") {
-        weatherInfoDiv.innerHTML = '<p style="color:red;">⚠️ 请先填写 WeatherAPI Key！</p>';
+
+    if (!city || city.trim() === '') {
+        weatherInfoDiv.innerHTML = '<p style="color:red;">⚠️ 请输入城市名称！</p>';
         return;
     }
-    const apiUrl = `https://api.weatherapi.com/v1/current.json?key=${API_KEY}&q=${city}&lang=zh`;
+
     try {
         weatherInfoDiv.innerHTML = `<p>正在查询 ${city} 的天气...</p>`;
-        const response = await fetch(apiUrl);
-        if (!response.ok) { throw new Error(`无法获取 ${city} 的天气，请检查城市名称`); }
+
+        // 🔒 通过后端 API 获取天气（密钥安全存储在后端）
+        const response = await fetch(`/api/weather?city=${encodeURIComponent(city)}`, {
+            method: 'GET',
+            credentials: 'include'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || '获取天气信息失败');
+        }
+
         const data = await response.json();
         displayWeather(data);
+
     } catch (error) {
         weatherInfoDiv.innerHTML = `<p style="color:red;">错误：${error.message}</p>`;
-        console.error("WeatherAPI 获取失败：", error);
+        console.error("天气API获取失败：", error);
     }
 }
 
