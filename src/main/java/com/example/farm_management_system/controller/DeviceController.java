@@ -200,21 +200,24 @@ public class DeviceController {
         }
     }
 
-    @GetMapping("/api/checkDeviceBinding")
-    public ResponseEntity<Map<String, Boolean>> checkDeviceBinding(@RequestParam Integer userId) {
-        if (userId == null) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
-
-        String checkSql = "SELECT COUNT(*) FROM devices WHERE user_id = ?";
-        try {
-            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, userId);
-            boolean isBound = (count != null && count > 0);
-            Map<String, Boolean> response = new HashMap<>();
-            response.put("isBound", isBound);
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            System.err.println("检查绑定状态失败: " + e.getMessage());
-            // 发生错误时，为了用户体验，默认返回 true 让用户进入主页（降级策略）
-            return ResponseEntity.ok(Collections.singletonMap("isBound", true));
-        }
-    }
 }
+
+    //查看设备绑定接口，未来可能会用
+//    @GetMapping("/api/checkDeviceBinding")
+//    public ResponseEntity<Map<String, Boolean>> checkDeviceBinding(@RequestParam Integer userId) {
+//        if (userId == null) return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+//
+//        String checkSql = "SELECT COUNT(*) FROM devices WHERE user_id = ?";
+//        try {
+//            Integer count = jdbcTemplate.queryForObject(checkSql, Integer.class, userId);
+//            boolean isBound = (count != null && count > 0);
+//            Map<String, Boolean> response = new HashMap<>();
+//            response.put("isBound", isBound);
+//            return ResponseEntity.ok(response);
+//        } catch (Exception e) {
+//            System.err.println("检查绑定状态失败: " + e.getMessage());
+//            // 发生错误时，为了用户体验，默认返回 true 让用户进入主页（降级策略）
+//            return ResponseEntity.ok(Collections.singletonMap("isBound", true));
+//        }
+//    }
+//}

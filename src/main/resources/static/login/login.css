@@ -7,7 +7,7 @@ body {
     margin: 0;
     background-color: #78a7ff;
 
-    /* 关键修正：图片路径改为 /images/login.png */
+    /* 关键修正：图片路径 */
     background-image: url('/images/login.png');
     background-size: cover;
     background-repeat: no-repeat;
@@ -15,114 +15,88 @@ body {
     overflow: hidden;
 }
 
-/* 2. 定义一个基准缩放单位 */
-/* 我们假设在 1920px 宽度的屏幕上，您想要 50px 的字体大小。 */
-/* 50px / 1920px ≈ 0.02604 -> 2.604vw */
-/* 我们使用 2.6vw 作为基准，并微调所有相关尺寸。 */
+/* 2. 定义基准缩放单位 */
 :root {
-    --base-font-size: 2.6vw; /* 用于字体大小 */
-    --base-line-height: calc(var(--base-font-size) * 0.08); /* 用于下划线粗细 (4px / 50px ≈ 0.08) */
+    --base-font-size: 2.6vw;
+    --base-line-height: calc(var(--base-font-size) * 0.08);
 }
 
-/* 3. 表单定位：精确地定位到木牌的书写区域 */
+/* 3. 表单定位：精确对应木牌书写区域 */
 #login-form {
     position: relative;
-    /* 保持居中定位，使用 vw 确保定位也随缩放调整 */
-    top: -0.5vw; /* 替换 -30px */
-    width: 31.25vw; /* 替换 600px (600/1920=0.3125) */
-    left: 3.125vw; /* 替换 60px (60/1920=0.03125) */
+    top: -0.5vw;
+    width: 31.25vw;
+    left: 3.125vw;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
 
-/* 4. Minecraft 字体样式 (标签使用此样式) */
+/* 4. Minecraft 字体样式 */
 .minecraft-font {
     font-family: 'Press Start 2P', monospace;
     color: black;
-    /* 使用视口单位 */
-    font-size: var(--base-font-size); /* 替换 50px */
+    font-size: var(--base-font-size);
 }
 
 /* 5. 输入行样式 */
 .input-line {
     display: flex;
     align-items: flex-end;
-    /* 调整行间距 */
-    margin-bottom: 4.16vw; /* 替换 80px (80/1920≈0.0416) */
+    margin-bottom: 4.16vw;
     width: 100%;
     justify-content: center;
 }
 
-.input-line label {
-    white-space: nowrap;
-    padding-right: 0.78vw; /* 替换 15px (15/1920≈0.0078) */
-}
-
-/* 6. 融入式输入框 */
 .input-field {
     flex-grow: 0;
     width: 80%;
     border: none;
     outline: none;
     background: transparent;
-
-    /* 关键：加粗的黑线下划线，使用 vw */
-    border-bottom: var(--base-line-height) solid black; /* 替换 4px */
-
+    border-bottom: var(--base-line-height) solid black;
     color: black;
-    padding: 1vw 0 0.26vw 0; /* 替换 5px */
-    margin-left: 0;
+    padding: 1vw 0 0.26vw 0;
     font-family: 'Press Start 2P', monospace;
-    /* 使用视口单位 */
-    font-size: var(--base-font-size); /* 替换 50px */
+    font-size: var(--base-font-size);
     text-align: left;
     line-height: 1.2;
 }
 
-/* 修复输入框聚焦时和自动填充时的白色背景 */
 .input-field:focus {
     background-color: transparent !important;
     color: black;
-    /* 关键：下划线粗细使用 vw */
-    border-bottom: var(--base-line-height) solid black; /* 替换 4px */
+    border-bottom: var(--base-line-height) solid black;
     outline: none;
     box-shadow: none;
 }
-/* 自动填充样式保持不变，但仍确保透明背景和黑色文字 */
-.input-field:-webkit-autofill,
-.input-field:-webkit-autofill:hover,
-.input-field:-webkit-autofill:focus,
-.input-field:-webkit-autofill:active {
-    -webkit-box-shadow: 0 0 0 30px transparent inset !important;
-    -webkit-text-fill-color: black !important;
-    transition: background-color 5000s ease-in-out 0s;
-}
 
-/* ********** 新增: 注册按钮样式 ********** */
+/* 6. 按钮行样式 (包含登录和注册) */
 .register-line {
-    /* 与上一个输入行对齐，但不需要底部的额外间距 */
     width: 100%;
     display: flex;
-    justify-content: flex-end; /* 使按钮靠右对齐 */
-    padding-right: 4.16vw; /* 调整右侧间距，使其在横线右边 */
-    margin-top: -1vw; /* 替换 20px，与密码行留出少量距离 */
+    justify-content: flex-end; /* 确保注册按钮靠右固定 */
+    padding-right: 4.16vw; /* 这个值控制注册按钮离右边的距离 */
+    margin-top: -1vw;
 }
 
 .register-button {
-    /* 重置 a 标签的样式，使其看起来像一个文本按钮 */
-    text-decoration: none; /* 移除下划线 */
+    text-decoration: none;
     color: black;
     cursor: pointer;
     background: none;
     border: none;
-    /* 使用稍小的字体，使其更容易区分 */
-    font-size: calc(var(--base-font-size) * 1); /* 替换 25px */
-    padding: 0.26vw 0.52vw; /* 替换 5px 10px */
+    font-size: calc(var(--base-font-size) * 1);
+    padding: 0.26vw 0.52vw;
     transition: color 0.2s;
 }
 
 .register-button:hover {
-    color: #444; /* 鼠标悬停时的颜色变化 */
+    color: #444;
 }
-/* ************************************ */
+
+/* 7. 特殊微调：让“登录”按钮单独向左平移 */
+/* 如果你觉得间距不够，调大这个 6vw 即可 */
+.register-line a:first-child {
+    margin-right: 15vw;
+}
