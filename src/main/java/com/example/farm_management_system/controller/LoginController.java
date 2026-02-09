@@ -10,8 +10,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import javax.servlet.http.HttpServletRequest; // 引入 Request 用于重置 Session
-import javax.servlet.http.HttpSession;
+import jakarta.servlet.http.HttpServletRequest; // 引入 Request 用于重置 Session
+import jakarta.servlet.http.HttpSession;
 import java.sql.Timestamp;
 import java.util.*;
 
