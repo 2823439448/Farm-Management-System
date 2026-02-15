@@ -32,7 +32,7 @@ function handleLogin() {
             // 登录成功后的逻辑
             if (data.userId) {
                 // 直接进入主页面，不再去后端检查是否绑定了设备
-                window.location.href = "/index/index.html";
+                window.location.href = "/choose/choose.html";
             } else {
                 alert('登录失败，服务器返回数据异常。');
             }

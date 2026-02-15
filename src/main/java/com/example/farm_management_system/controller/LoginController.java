@@ -1,17 +1,18 @@
-package com.example.farm_management_system.controller;
+package com.example.farm_management_system.controller; // 建议使用你当前项目的包名
 
 import com.example.farm_management_system.model.LoginRequest;
+
+import jakarta.servlet.http.HttpSession;
 import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.servlet.http.HttpServletRequest;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.jdbc.core.JdbcTemplate;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.web.bind.annotation.*;
 
-import jakarta.servlet.http.HttpServletRequest; // 引入 Request 用于重置 Session
-import jakarta.servlet.http.HttpSession;
+
 import java.sql.Timestamp;
 import java.util.*;
 
@@ -21,21 +22,21 @@ public class LoginController {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private com.example.farm_management_system.service.FileService fileService; // 合并点：注入文件服务
+
     private final BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
-    // 定义安全策略常量
-    private static final int MAX_FAILED_ATTEMPTS = 5; // 最大失败次数
-    private static final long LOCK_TIME_DURATION = 15 * 60 * 1000; // 锁定时间：15分钟 (毫秒)
+    // 保持 Old 版定义的常量
+    private static final int MAX_FAILED_ATTEMPTS = 5;
+    private static final long LOCK_TIME_DURATION = 15 * 60 * 1000;
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> doLogin(@RequestBody LoginRequest loginRequest, HttpServletRequest request) {
-        // 使用 HttpServletRequest 也就是为了手动管理 Session 安全
-
         String username = loginRequest.getUsername();
         String plainPassword = loginRequest.getPassword();
 
-        // 🛡️ 1. 查询用户及安全状态字段
-        // 注意：必须查询 failed_attempts 和 locked_until
+        // 1. 查询用户及安全状态（保持 Old 版字段）
         String sql = "SELECT user_id, password, failed_attempts, locked_until FROM users WHERE username = ?";
 
         try {
@@ -48,7 +49,6 @@ public class LoginController {
                 return map;
             }, username);
 
-            // 如果用户不存在，返回模糊错误以防止用户名枚举
             if (users.isEmpty()) {
                 return new ResponseEntity<>(Collections.singletonMap("message", "用户名或密码错误"), HttpStatus.UNAUTHORIZED);
             }
@@ -59,28 +59,28 @@ public class LoginController {
             int failedAttempts = user.get("failedAttempts") != null ? (int) user.get("failedAttempts") : 0;
             Timestamp lockedUntil = (Timestamp) user.get("lockedUntil");
 
-            // 🛡️ 2. 检查账户是否被锁定
+            // 2. 检查锁定状态（保持 Old 版详细提示逻辑）
             if (lockedUntil != null && lockedUntil.after(new Date())) {
                 long remainingMinutes = (lockedUntil.getTime() - System.currentTimeMillis()) / 60000;
                 return new ResponseEntity<>(Collections.singletonMap("message", "账户已锁定，请在 " + (remainingMinutes + 1) + " 分钟后重试"), HttpStatus.FORBIDDEN);
             }
 
-            // 🛡️ 3. 验证密码
+            // 3. 验证密码
             if (passwordEncoder.matches(plainPassword, hashedPassword)) {
-                // =============== 登录成功逻辑 ===============
+                // --- 登录成功逻辑 ---
 
-                // A. 重置安全计数器 (解锁账户，清零失败次数)
-                String resetSql = "UPDATE users SET failed_attempts = 0, locked_until = NULL, last_failed = NULL WHERE user_id = ?";
-                jdbcTemplate.update(resetSql, userId);
+                // A. 重置安全计数器 (包含 Old 版的 last_failed 清理)
+                jdbcTemplate.update("UPDATE users SET failed_attempts = 0, locked_until = NULL, last_failed = NULL WHERE user_id = ?", userId);
 
-                // B. 防会话固定攻击 (Session Fixation Protection)
-                // 销毁旧 session，创建新 session
+                // B. Session 管理（防固定攻击）
                 HttpSession oldSession = request.getSession(false);
-                if (oldSession != null) {
-                    oldSession.invalidate();
-                }
+                if (oldSession != null) oldSession.invalidate();
                 HttpSession newSession = request.getSession(true);
                 newSession.setAttribute("userId", userId);
+                newSession.setAttribute("username", username); // 保持新版的 username 存储，方便后续使用
+
+                // C. 合并新版逻辑：确保用户目录存在
+                fileService.ensureUserDir(username);
 
                 Map<String, Object> response = new HashMap<>();
                 response.put("success", true);
@@ -88,23 +88,17 @@ public class LoginController {
                 return ResponseEntity.ok(response);
 
             } else {
-                // =============== 登录失败逻辑 ===============
-
+                // --- 登录失败逻辑 (完全遵循 Old 版) ---
                 int newAttempts = failedAttempts + 1;
 
                 if (newAttempts >= MAX_FAILED_ATTEMPTS) {
-                    // 超过最大尝试次数，锁定账户
                     Timestamp unlockTime = new Timestamp(System.currentTimeMillis() + LOCK_TIME_DURATION);
-                    String lockSql = "UPDATE users SET failed_attempts = ?, locked_until = ?, last_failed = NOW() WHERE user_id = ?";
-                    jdbcTemplate.update(lockSql, newAttempts, unlockTime, userId);
-
+                    // 包含 last_failed = NOW()
+                    jdbcTemplate.update("UPDATE users SET failed_attempts = ?, locked_until = ?, last_failed = NOW() WHERE user_id = ?",
+                            newAttempts, unlockTime, userId);
                     return new ResponseEntity<>(Collections.singletonMap("message", "密码错误次数过多，账户已锁定15分钟"), HttpStatus.FORBIDDEN);
                 } else {
-                    // 仅增加计数
-                    String failSql = "UPDATE users SET failed_attempts = ?, last_failed = NOW() WHERE user_id = ?";
-                    jdbcTemplate.update(failSql, newAttempts, userId);
-
-                    // 返回通用错误信息
+                    jdbcTemplate.update("UPDATE users SET failed_attempts = ?, last_failed = NOW() WHERE user_id = ?", newAttempts, userId);
                     return new ResponseEntity<>(Collections.singletonMap("message", "用户名或密码错误"), HttpStatus.UNAUTHORIZED);
                 }
             }

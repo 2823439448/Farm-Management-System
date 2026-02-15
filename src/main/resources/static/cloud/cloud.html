@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>云网盘</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .sidebar { width: 240px; height: 100vh; background: #fff; position: fixed; border-right: 1px solid #ddd; overflow-y: auto; }
+        .main { margin-left: 240px; padding: 30px; }
+        .nav-link { cursor: pointer; color: #333; padding: 15px 25px; }
+        .nav-link.active { background: #e7f1ff; color: #007bff !important; font-weight: bold; border-right: 4px solid #007bff; }
+        .breadcrumb { background: #f8f9fa; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; }
+        .breadcrumb-item { cursor: pointer; }
+        .breadcrumb-item:hover { text-decoration: underline; }
+        .file-item { cursor: pointer; transition: background 0.2s; }
+        .file-item:hover { background: #f8f9fa; }
+        .folder-icon { color: #ffc107; font-size: 1.2em; }
+        .file-icon { color: #6c757d; font-size: 1.2em; }
+        .dropdown-menu { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+    </style>
+</head>
+<body>
+<div class="sidebar">
+    <div class="p-4 border-bottom"><h4>云网盘</h4></div>
+    <div class="nav flex-column mt-3">
+        <div id="nav-disk" class="nav-link active" onclick="show('disk')">
+            <i class="fas fa-hdd w-25"></i> 磁盘占用
+        </div>
+        <div id="nav-mine" class="nav-link" onclick="show('mine')">
+            <i class="fas fa-folder w-25"></i> 我的文件
+        </div>
+        <div id="nav-shared" class="nav-link" onclick="show('shared')">
+            <i class="fas fa-share-alt w-25"></i> 共享给我
+        </div>
+        <div id="nav-all" class="nav-link" onclick="show('all')">
+            <i class="fas fa-file w-25"></i> 全部文件
+        </div>
+        <div class="nav-link text-danger mt-5" onclick="logout()">退出登录</div>
+    </div>
+</div>
+
+<div class="main">
+    <!-- 磁盘占用 -->
+    <div id="section-disk">
+        <h3>存储状态</h3>
+        <div class="card p-4 mt-4 shadow-sm col-md-6">
+            <div class="d-flex justify-content-between mb-2">
+                <span>使用进度</span><strong id="disk-percent">0%</strong>
+            </div>
+            <div class="progress mb-3" style="height: 15px;">
+                <div id="disk-bar" class="progress-bar progress-bar-striped bg-primary"></div>
+            </div>
+            <p id="disk-text" class="text-muted small"></p>
+        </div>
+    </div>
+
+    <!-- 文件列表 -->
+    <div id="section-files" style="display:none;">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 id="view-title">我的文件</h3>
+            <div>
+                <button class="btn btn-success me-2" onclick="showCreateFolderDialog()">
+                    <i class="fas fa-folder-plus"></i> 新建文件夹
+                </button>
+                <input type="file" id="realFile" style="display:none" onchange="doUpload()">
+                <button class="btn btn-primary" onclick="document.getElementById('realFile').click()">
+                    <i class="fas fa-upload"></i> 上传文件
+                </button>
+            </div>
+        </div>
+
+        <!-- 面包屑导航 -->
+        <nav id="breadcrumb-nav" style="display:none;">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item" onclick="navigateToRoot()">
+                    <i class="fas fa-home"></i> 根目录
+                </li>
+                <span id="breadcrumb-items"></span>
+            </ol>
+        </nav>
+
+        <div class="card shadow-sm">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                <tr>
+                    <th width="40%">文件名</th>
+                    <th width="15%">拥有者</th>
+                    <th width="15%">大小</th>
+                    <th width="15%">来源</th>
+                    <th width="15%">操作</th>
+                </tr>
+                </thead>
+                <tbody id="file-list"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 创建文件夹对话框 -->
+<div class="modal fade" id="createFolderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">新建文件夹</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="folderNameInput" class="form-control" placeholder="请输入文件夹名称">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="createFolder()">创建</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 重命名对话框 -->
+<div class="modal fade" id="renameModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">重命名</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="text" id="renameInput" class="form-control" placeholder="请输入新名称">
+                <input type="hidden" id="renameFileId">
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="doRename()">确定</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 权限设置对话框 -->
+<div class="modal fade" id="permissionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">权限设置</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="permissionFileId">
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="isPublicCheck">
+                    <label class="form-check-label" for="isPublicCheck">
+                        <strong>公开文件</strong>（所有人可见）
+                    </label>
+                    <small class="form-text text-muted d-block ms-4">勾选后，所有登录用户都能查看和下载此文件</small>
+                </div>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="canWriteCheck">
+                    <label class="form-check-label" for="canWriteCheck">
+                        <strong>允许他人修改</strong>（仅在公开时生效）
+                    </label>
+                    <small class="form-text text-muted d-block ms-4">勾选后，其他用户可以删除、重命名和覆盖上传此文件</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="savePermission()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let currentView = 'mine';
+    let currentParentId = null;
+
+    function show(view) {
+        if (view === 'disk') {
+            document.querySelectorAll('.main > div').forEach(d => d.style.display='none');
+            document.getElementById('section-disk').style.display='block';
+            loadDisk();
+        } else {
+            currentView = view;
+            document.querySelectorAll('.main > div').forEach(d => d.style.display='none');
+            document.getElementById('section-files').style.display='block';
+
+            const titles = {
+                'mine': '我的文件',
+                'shared': '共享给我',
+                'all': '全部文件'
+            };
+            document.getElementById('view-title').innerText = titles[view];
+
+            currentParentId = null;
+            loadFiles();
+        }
+
+        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+        document.getElementById('nav-' + (view === 'disk' ? 'disk' : view)).classList.add('active');
+    }
+
+    async function loadFiles() {
+        const url = `/api/disk/list?viewType=${currentView}` +
+            (currentParentId ? `&parentId=${currentParentId}` : '');
+        const res = await fetch(url);
+        const data = await res.json();
+
+        renderBreadcrumb(data.breadcrumb);
+        renderFileList(data.files);
+    }
+
+    function renderBreadcrumb(breadcrumb) {
+        const nav = document.getElementById('breadcrumb-nav');
+        const items = document.getElementById('breadcrumb-items');
+
+        if (breadcrumb && breadcrumb.length > 0) {
+            nav.style.display = 'block';
+            items.innerHTML = breadcrumb.map(crumb =>
+                `<li class="breadcrumb-item" onclick="navigateTo(${crumb.id})">${crumb.name}</li>`
+            ).join('');
+        } else {
+            nav.style.display = 'none';
+        }
+    }
+
+    function renderFileList(files) {
+        const tbody = document.getElementById('file-list');
+
+        if (!files || files.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">暂无文件</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = files.map(f => {
+            const isDirectory = f.is_directory === 1;
+            const icon = isDirectory ?
+                '<i class="fas fa-folder folder-icon me-2"></i>' :
+                '<i class="fas fa-file file-icon me-2"></i>';
+
+            const size = isDirectory ? '-' : formatSize(f.file_size);
+            const sourceBadge = getSourceBadge(f.source);
+
+            const clickAction = isDirectory ? `navigateTo(${f.id})` : '';
+
+            // 判断是否可以操作：我的文件 或 公开可写的文件
+            const canOperate = f.source === 'mine' || f.source === 'public_write';
+
+            return `
+                <tr class="file-item" ${clickAction ? `onclick="${clickAction}"` : ''}>
+                    <td>${icon}<strong>${f.filename}</strong></td>
+                    <td>${f.owner_name}</td>
+                    <td>${size}</td>
+                    <td>${sourceBadge}</td>
+                    <td onclick="event.stopPropagation()">
+                        <div class="btn-group btn-group-sm">
+                            ${!isDirectory ? `<a href="/api/disk/download/${f.id}" class="btn btn-outline-primary" title="下载">
+                                <i class="fas fa-download"></i>
+                            </a>` : ''}
+                            ${canOperate ? `
+                                <button class="btn btn-outline-warning" onclick="showRenameDialog(${f.id}, '${f.filename}')" title="重命名">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                            ` : ''}
+                            ${f.source === 'mine' ? `
+                                <button class="btn btn-outline-info" onclick="showPermissionDialog(${f.id})" title="权限">
+                                    <i class="fas fa-lock"></i>
+                                </button>
+                            ` : ''}
+                            ${canOperate ? `
+                                <button class="btn btn-outline-danger" onclick="deleteFile(${f.id}, '${f.filename}')" title="删除">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            ` : ''}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function getSourceBadge(source) {
+        const badges = {
+            'mine': '<span class="badge bg-success">我的</span>',
+            'public_read': '<span class="badge bg-info">公开</span>',
+            'public_write': '<span class="badge bg-primary">公开可写</span>',
+            'shared_read': '<span class="badge bg-warning">共享只读</span>',
+            'shared_write': '<span class="badge bg-danger">共享可写</span>'
+        };
+        return badges[source] || '<span class="badge bg-secondary">未知</span>';
+    }
+
+    function formatSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+    }
+
+    function navigateTo(folderId) {
+        currentParentId = folderId;
+        loadFiles();
+    }
+
+    function navigateToRoot() {
+        currentParentId = null;
+        loadFiles();
+    }
+
+    async function doUpload() {
+        const file = document.getElementById('realFile').files[0];
+        if (!file) return;
+
+        const formData = new FormData();
+        formData.append('file', file);
+        if (currentParentId) {
+            formData.append('parentId', currentParentId);
+        }
+
+        try {
+            const res = await fetch('/api/disk/upload', { method: 'POST', body: formData });
+            const text = await res.text();
+
+            if (res.ok) {
+                alert('上传成功');
+                loadFiles();
+            } else {
+                alert('上传失败：' + text);
+            }
+        } catch (e) {
+            alert('上传失败：' + e.message);
+        }
+
+        document.getElementById('realFile').value = '';
+    }
+
+    function showCreateFolderDialog() {
+        document.getElementById('folderNameInput').value = '';
+        new bootstrap.Modal(document.getElementById('createFolderModal')).show();
+    }
+
+    async function createFolder() {
+        const folderName = document.getElementById('folderNameInput').value.trim();
+        if (!folderName) {
+            alert('请输入文件夹名称');
+            return;
+        }
+
+        try {
+            const res = await fetch('/api/disk/createFolder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    folderName: folderName,
+                    parentId: currentParentId
+                })
+            });
+
+            const text = await res.text();
+
+            if (res.ok) {
+                alert('创建成功');
+                bootstrap.Modal.getInstance(document.getElementById('createFolderModal')).hide();
+                loadFiles();
+            } else {
+                alert('创建失败：' + text);
+            }
+        } catch (e) {
+            alert('创建失败：' + e.message);
+        }
+    }
+
+    function showRenameDialog(fileId, currentName) {
+        document.getElementById('renameFileId').value = fileId;
+        document.getElementById('renameInput').value = currentName;
+        new bootstrap.Modal(document.getElementById('renameModal')).show();
+    }
+
+    async function doRename() {
+        const fileId = document.getElementById('renameFileId').value;
+        const newName = document.getElementById('renameInput').value.trim();
+
+        if (!newName) {
+            alert('请输入新名称');
+            return;
+        }
+
+        try {
+            const res = await fetch(`/api/disk/rename/${fileId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ newName: newName })
+            });
+
+            const text = await res.text();
+
+            if (res.ok) {
+                alert('重命名成功');
+                bootstrap.Modal.getInstance(document.getElementById('renameModal')).hide();
+                loadFiles();
+            } else {
+                alert('重命名失败：' + text);
+            }
+        } catch (e) {
+            alert('重命名失败：' + e.message);
+        }
+    }
+
+    async function deleteFile(fileId, filename) {
+        if (!confirm(`确定要删除 "${filename}" 吗？`)) return;
+
+        try {
+            const res = await fetch(`/api/disk/delete/${fileId}`, { method: 'DELETE' });
+            const text = await res.text();
+
+            if (res.ok) {
+                alert('删除成功');
+                loadFiles();
+            } else {
+                alert('删除失败：' + text);
+            }
+        } catch (e) {
+            alert('删除失败：' + e.message);
+        }
+    }
+
+    async function showPermissionDialog(fileId) {
+        document.getElementById('permissionFileId').value = fileId;
+
+        // TODO: 可以在这里加载当前文件的权限设置，回显到复选框
+        // 暂时先不加载，让用户手动设置
+        document.getElementById('isPublicCheck').checked = false;
+        document.getElementById('canWriteCheck').checked = false;
+
+        new bootstrap.Modal(document.getElementById('permissionModal')).show();
+    }
+
+    async function savePermission() {
+        const fileId = document.getElementById('permissionFileId').value;
+        const isPublic = document.getElementById('isPublicCheck').checked;
+        const canWrite = document.getElementById('canWriteCheck').checked;
+
+        try {
+            const res = await fetch(`/api/disk/permission/${fileId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ isPublic, canWrite })
+            });
+
+            const text = await res.text();
+
+            if (res.ok) {
+                alert('权限设置成功');
+                bootstrap.Modal.getInstance(document.getElementById('permissionModal')).hide();
+                loadFiles();
+            } else {
+                alert('设置失败：' + text);
+            }
+        } catch (e) {
+            alert('设置失败：' + e.message);
+        }
+    }
+
+    async function loadDisk() {
+        const res = await fetch('/api/disk/dashboard');
+        const d = await res.json();
+        document.getElementById('disk-bar').style.width = d.percent + '%';
+        document.getElementById('disk-percent').innerText = d.percent + '%';
+        document.getElementById('disk-text').innerText = `已用 ${d.used_gb} GB / 总共 ${d.total_gb} GB`;
+    }
+
+    function logout() {
+        fetch('/api/disk/logout', {method:'POST'}).then(() => location.href='/login/login.html');
+    }
+
+    // 初始加载
+    loadDisk();
+</script>
+</body>
+</html>

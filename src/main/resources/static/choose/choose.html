@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>系统选择 - 云端管理平台</title>
+    <style>
+        :root {
+            --primary-color: #4a90e2;
+            --secondary-color: #50e3c2;
+            --bg-color: #f4f7f6;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            color: var(--text-color);
+        }
+
+        .container {
+            text-align: center;
+            max-width: 800px;
+            width: 90%;
+        }
+
+        h1 {
+            margin-bottom: 40px;
+            font-weight: 300;
+            color: #444;
+        }
+
+        .selection-wrapper {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            width: 260px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 12px 20px rgba(0,0,0,0.15);
+        }
+
+        .icon {
+            font-size: 50px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            margin: 10px 0;
+            font-size: 1.5rem;
+            color: var(--primary-color);
+        }
+
+        .card p {
+            font-size: 0.9rem;
+            color: #777;
+            line-height: 1.5;
+        }
+
+        .btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: var(--primary-color);
+            color: white;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+
+        /* 针对不同系统的配色微调 */
+        .card.farm-system h2 { color: #2ecc71; }
+        .card.farm-system .btn { background-color: #2ecc71; }
+
+        .card.cloud-system h2 { color: #3498db; }
+        .card.cloud-system .btn { background-color: #3498db; }
+
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>请选择要进入的系统</h1>
+
+    <div class="selection-wrapper">
+        <a href="/index/index.html" class="card farm-system">
+            <div class="icon">🌾</div>
+            <h2>农场管理</h2>
+            <p>管理农场设备、监控传感器数据及实时天气预报。</p>
+            <div class="btn">立即进入</div>
+        </a>
+
+        <a href="/cloud/cloud.html" class="card cloud-system">
+            <div class="icon">☁️</div>
+            <h2>云存储服务</h2>
+            <p>安全存储、上传和管理您的个人云端文件。</p>
+            <div class="btn">立即进入</div>
+        </a>
+    </div>
+</div>
+
+</body>
+</html>
