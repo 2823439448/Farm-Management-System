@@ -223,9 +223,22 @@ public class DiskController {
                 return ResponseEntity.status(404).body("文件不存在");
             }
 
+            String filename = (String) f.get("filename");
+
+            // 对文件名进行 URL 编码，解决中文文件名问题
+            String encodedFilename = java.net.URLEncoder.encode(filename, "UTF-8")
+                    .replaceAll("\\+", "%20");
+
             return ResponseEntity.ok()
+                    // 关键修复：使用 attachment 强制下载，不要预览
                     .header(HttpHeaders.CONTENT_DISPOSITION,
-                            "attachment; filename=\"" + f.get("filename") + "\"")
+                            "attachment; filename*=UTF-8''" + encodedFilename)
+                    // 设置正确的 Content-Type
+                    .header(HttpHeaders.CONTENT_TYPE, "application/octet-stream")
+                    // 防止缓存
+                    .header(HttpHeaders.CACHE_CONTROL, "no-cache, no-store, must-revalidate")
+                    .header(HttpHeaders.PRAGMA, "no-cache")
+                    .header(HttpHeaders.EXPIRES, "0")
                     .body(new FileSystemResource(file));
 
         } catch (Exception e) {

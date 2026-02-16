@@ -14,7 +14,7 @@ public class FileService {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
-    private final String ROOT_PATH = "D:/home/data";
+    private final String ROOT_PATH = "/home/data";
 
     public void ensureUserDir(String username) {
         File userDir = new File(ROOT_PATH, username);
