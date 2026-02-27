@@ -61,6 +61,8 @@
         .nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
         .nav-item.danger { color: #ef4444; }
         .nav-item.danger:hover { background: #fef2f2; }
+        .nav-item.warn-item { color: var(--warn); }
+        .nav-item.warn-item:hover { background: #fffbeb; }
 
         /* ── Transfer Panel ── */
         .transfer-panel {
@@ -204,7 +206,7 @@
         .btn-ic.blue:hover { background: #eef2ff; color: var(--accent); border-color: var(--accent); }
         .btn-ic.red:hover  { background: #fef2f2; color: var(--danger); border-color: var(--danger); }
         .btn-ic.warn:hover { background: #fffbeb; color: var(--warn); border-color: var(--warn); }
-        .btn-ic.teal:hover { background: #ecfeff; color: #06b6d4; border-color: #06b6d4; }
+        .btn-ic.green:hover { background: #f0fdf4; color: #16a34a; border-color: #16a34a; }
 
         .empty-state { text-align: center; padding: 56px 20px; color: var(--text-secondary); }
         .empty-state i { font-size: 32px; margin-bottom: 10px; opacity: 0.2; display: block; }
@@ -267,8 +269,14 @@
             <i class="fas fa-layer-group"></i> 全部文件
         </div>
         <div class="nav-label" style="margin-top:10px;">账户</div>
+        <div class="nav-item" onclick="showChangePwdModal()">
+            <i class="fas fa-key"></i> 修改密码
+        </div>
         <div class="nav-item danger" onclick="logout()">
             <i class="fas fa-arrow-right-from-bracket"></i> 退出登录
+        </div>
+        <div class="nav-item warn-item" onclick="showDeleteAccountModal()">
+            <i class="fas fa-user-slash"></i> 注销账户
         </div>
     </div>
 
@@ -426,6 +434,96 @@
 </div>
 
 
+<!-- 移动文件 Modal -->
+<div class="modal fade" id="moveModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-folder-open" style="color:var(--accent);margin-right:8px;"></i>移动到</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="moveFileId">
+                <div style="font-size:13px;color:#6b7280;margin-bottom:10px;">选择目标文件夹：</div>
+                <!-- 目标文件夹树 -->
+                <div id="move-folder-tree" style="border:1.5px solid var(--border);border-radius:8px;max-height:260px;overflow-y:auto;padding:6px 0;">
+                    <div id="move-tree-loading" style="text-align:center;padding:20px;color:#c4c9d4;font-size:13px;">加载中…</div>
+                </div>
+                <div id="move-target-label" style="margin-top:10px;font-size:12.5px;color:var(--text-secondary);">
+                    目标位置：<strong id="move-target-name">根目录</strong>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="m-btn sec" data-bs-dismiss="modal">取消</button>
+                <button class="m-btn pri" onclick="doMove()">移动到此处</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 修改密码 Modal -->
+<div class="modal fade" id="changePwdModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-key" style="color:var(--accent);margin-right:8px;"></i>修改密码</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="display:flex;flex-direction:column;gap:14px;">
+                <div>
+                    <label style="font-size:13px;color:#6b7280;margin-bottom:6px;display:block;">当前密码</label>
+                    <input type="password" id="pwd-old" class="form-control" placeholder="请输入当前密码">
+                </div>
+                <div>
+                    <label style="font-size:13px;color:#6b7280;margin-bottom:6px;display:block;">新密码</label>
+                    <input type="password" id="pwd-new" class="form-control" placeholder="请输入新密码（至少6位）">
+                </div>
+                <div>
+                    <label style="font-size:13px;color:#6b7280;margin-bottom:6px;display:block;">确认新密码</label>
+                    <input type="password" id="pwd-confirm" class="form-control" placeholder="再次输入新密码">
+                </div>
+                <div id="pwd-msg" style="font-size:12.5px;display:none;padding:8px 12px;border-radius:7px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="m-btn sec" data-bs-dismiss="modal">取消</button>
+                <button class="m-btn pri" onclick="doChangePwd()">确认修改</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 注销账户 Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fas fa-triangle-exclamation" style="color:#f59e0b;margin-right:8px;"></i>注销账户</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+                    <div style="font-size:13.5px;font-weight:600;color:#991b1b;margin-bottom:5px;">⚠ 此操作不可逆！</div>
+                    <div style="font-size:12.5px;color:#b91c1c;line-height:1.6;">
+                        注销后将永久删除：<br>
+                        · 您的用户账户<br>
+                        · 所有绑定设备及传感器数据<br>
+                        · 云网盘全部文件
+                    </div>
+                </div>
+                <div>
+                    <label style="font-size:13px;color:#6b7280;margin-bottom:6px;display:block;">请输入密码确认注销</label>
+                    <input type="password" id="del-pwd" class="form-control" placeholder="输入登录密码">
+                </div>
+                <div id="del-msg" style="font-size:12.5px;display:none;padding:8px 12px;border-radius:7px;margin-top:10px;"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="m-btn sec" data-bs-dismiss="modal">取消</button>
+                <button class="m-btn" style="background:#ef4444;color:#fff;" onclick="doDeleteAccount()">确认注销账户</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     let currentView = 'mine', currentParentId = null;
@@ -462,12 +560,22 @@
         } else { nav.style.display='none'; }
     }
 
+    // 全局文件数据索引，key = file_id，每次渲染后更新
+    // 不挂在 DOM 元素上，所以 innerHTML 重写不会丢失
+    let fileDataMap = {};
+
     function renderFileList(files) {
         const tbody = document.getElementById('file-list');
         if (!files || files.length===0) {
             tbody.innerHTML=`<tr><td colspan="5"><div class="empty-state"><i class="fas fa-box-open"></i><p>暂无文件</p></div></td></tr>`;
+            fileDataMap = {};
             return;
         }
+
+        // 每次渲染前刷新 Map
+        fileDataMap = {};
+        files.forEach(f => { fileDataMap[f.id] = f; });
+
         tbody.innerHTML = files.map(f => {
             const isDir = f.is_directory===1;
             const ico = isDir
@@ -484,23 +592,58 @@
             } else {
                 badge = {public_read:`<span class="badge-c badge-pub-r">公开</span>`,public_write:`<span class="badge-c badge-pub-w">公开可写</span>`,shared_read:`<span class="badge-c badge-sh-r">共享只读</span>`,shared_write:`<span class="badge-c badge-sh-w">共享可写</span>`}[f.source]||'';
             }
-            const canOp = f.source==='mine'||f.source==='public_write';
-            return `<tr ${isDir?`onclick="navigateTo(${f.id})" style="cursor:pointer;"`:''}>
-            <td><div class="file-name-cell">${ico}<span class="file-fname">${f.filename}</span></div></td>
-            <td class="file-meta">${f.owner_name}</td>
+            const canOp = f.source==='mine'||f.source==='public_write'||f.source==='shared_write';
+
+            return `<tr data-id="${f.id}" ${isDir?'style="cursor:pointer;"':''}>
+            <td><div class="file-name-cell">${ico}<span class="file-fname">${escHtml(f.filename)}</span></div></td>
+            <td class="file-meta">${escHtml(f.owner_name)}</td>
             <td class="file-meta">${size}</td>
             <td>${badge}</td>
-            <td onclick="event.stopPropagation()">
+            <td>
                 <div class="action-group">
-                    ${!isDir?`<button class="btn-ic blue" title="下载" onclick="downloadFile(${f.id},'${f.filename}',${f.file_size||0})"><i class="fas fa-download"></i></button>`:''}
-                    ${canOp?`<button class="btn-ic warn" title="重命名" onclick="showRenameDialog(${f.id},'${f.filename}')"><i class="fas fa-pen"></i></button>`:''}
-                    ${f.source==='mine'?`<button class="btn-ic teal" title="权限" onclick="showPermissionDialog(${f.id},${f.is_public===1},${f.can_write===1})"><i class="fas fa-lock"></i></button>`:''}
-                    ${canOp?`<button class="btn-ic red" title="删除" onclick="deleteFile(${f.id},'${f.filename}')"><i class="fas fa-trash"></i></button>`:''}
+                    ${!isDir?`<button class="btn-ic blue" title="下载" data-action="download"><i class="fas fa-download"></i></button>`:''}
+                    ${canOp?`<button class="btn-ic green" title="移动" data-action="move"><i class="fas fa-folder-open"></i></button>`:''}
+                    ${canOp?`<button class="btn-ic warn" title="重命名" data-action="rename"><i class="fas fa-pen"></i></button>`:''}
+                    ${f.source==='mine'?`<button class="btn-ic teal" title="权限" data-action="permission"><i class="fas fa-lock"></i></button>`:''}
+                    ${canOp?`<button class="btn-ic red" title="删除" data-action="delete"><i class="fas fa-trash"></i></button>`:''}
                 </div>
             </td>
         </tr>`;
         }).join('');
     }
+
+    // HTML 转义，防止文件名中的 < > & " 破坏结构
+    function escHtml(str) {
+        if (!str) return '';
+        return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    // 事件委托：绑定在不会被重写的父容器上，通过 fileDataMap 查数据
+    document.getElementById('file-list').addEventListener('click', function(e) {
+        const tr = e.target.closest('tr[data-id]');
+        if (!tr) return;
+
+        const fid = tr.dataset.id;
+        const f = fileDataMap[fid];
+        if (!f) return;
+
+        const isDir = f.is_directory === 1;
+        const btn = e.target.closest('button[data-action]');
+
+        if (!btn) {
+            // 点击行本身：进入目录
+            if (isDir) navigateTo(f.id);
+            return;
+        }
+
+        e.stopPropagation();
+        const action = btn.dataset.action;
+        if (action === 'download')   downloadFile(f.id, f.filename, f.file_size || 0);
+        else if (action === 'move')       showMoveDialog(f.id, f.filename);
+        else if (action === 'rename')     showRenameDialog(f.id, f.filename);
+        else if (action === 'permission') showPermissionDialog(f.id, f.is_public===1, f.can_write===1);
+        else if (action === 'delete')     deleteFile(f.id, f.filename);
+    });
 
     function formatSize(b) {
         if(!b||b===0) return '0 B';
@@ -584,6 +727,193 @@
         document.getElementById('disk-free').textContent=(parseFloat(d.total_gb)-parseFloat(d.used_gb)).toFixed(2);
     }
     function logout(){ fetch('/api/disk/logout',{method:'POST'}).then(()=>location.href='/login/login.html'); }
+
+    // ── 移动文件 ──
+    let moveTargetParentId = null;
+    let _moveModal = null; // 复用同一个 Modal 实例
+
+    function getMoveModal() {
+        if (!_moveModal) {
+            _moveModal = new bootstrap.Modal(document.getElementById('moveModal'), { backdrop: 'static' });
+            // Modal 完全隐藏后重置状态，防止残留
+            document.getElementById('moveModal').addEventListener('hidden.bs.modal', () => {
+                moveTargetParentId = null;
+                document.getElementById('move-folder-tree').innerHTML =
+                    '<div id="move-tree-loading" style="text-align:center;padding:20px;color:#c4c9d4;font-size:13px;">加载中…</div>';
+                document.getElementById('move-target-name').textContent = '根目录';
+            });
+        }
+        return _moveModal;
+    }
+
+    async function showMoveDialog(fileId, filename) {
+        document.getElementById('moveFileId').value = fileId;
+        moveTargetParentId = null;
+        document.getElementById('move-target-name').textContent = '根目录';
+
+        // 重置树
+        document.getElementById('move-folder-tree').innerHTML =
+            '<div id="move-tree-loading" style="text-align:center;padding:20px;color:#c4c9d4;font-size:13px;">加载中…</div>';
+
+        getMoveModal().show();
+
+        try {
+            const res = await fetch('/api/disk/folders');
+            const folders = await res.json();
+            renderFolderTree(folders, fileId);
+        } catch(e) {
+            const el = document.getElementById('move-tree-loading');
+            if (el) el.textContent = '加载文件夹失败';
+        }
+    }
+
+    function renderFolderTree(folders, excludeFileId) {
+        const container = document.getElementById('move-folder-tree');
+        container.innerHTML = '';
+
+        // 根目录选项
+        const rootEl = document.createElement('div');
+        rootEl.className = 'move-folder-item move-folder-selected';
+        rootEl.style.cssText = 'padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13.5px;background:var(--accent-light);color:var(--accent);font-weight:500;';
+        rootEl.innerHTML = '<i class="fas fa-house" style="font-size:12px;"></i> 根目录';
+        rootEl.addEventListener('click', () => selectMoveTarget(null, '根目录', rootEl));
+        container.appendChild(rootEl);
+
+        // 构建树形结构（排除自身及其子孙）
+        const folderMap = {};
+        folders.forEach(f => { folderMap[f.file_id] = { ...f, children: [] }; });
+        const roots = [];
+        folders.forEach(f => {
+            if (String(f.file_id) === String(excludeFileId)) return;
+            const pid = f.parent_id;
+            if (pid && folderMap[pid] && String(pid) !== String(excludeFileId)) {
+                folderMap[pid].children.push(folderMap[f.file_id]);
+            } else if (!pid) {
+                if (String(f.file_id) !== String(excludeFileId)) roots.push(folderMap[f.file_id]);
+            }
+        });
+
+        function appendNode(node, depth, parentEl) {
+            if (!node) return;
+            const el = document.createElement('div');
+            el.className = 'move-folder-item';
+            el.style.cssText = `padding:7px 14px 7px ${depth*16+14}px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;transition:background 0.1s;`;
+            el.innerHTML = `<i class="fas fa-folder" style="color:#f59e0b;font-size:12px;"></i>`;
+            // 文件名用 textNode 安全插入，不经过 HTML
+            el.appendChild(document.createTextNode(' ' + node.filename));
+            el.addEventListener('click', () => selectMoveTarget(node.file_id, node.filename, el));
+            el.addEventListener('mouseenter', () => { if (!el.classList.contains('move-folder-selected')) el.style.background = '#f5f6f8'; });
+            el.addEventListener('mouseleave', () => { if (!el.classList.contains('move-folder-selected')) el.style.background = ''; });
+            parentEl.appendChild(el);
+            (node.children || []).forEach(c => appendNode(c, depth + 1, parentEl));
+        }
+
+        roots.forEach(r => appendNode(r, 0, container));
+    }
+
+    function selectMoveTarget(id, name, el) {
+        moveTargetParentId = id;
+        document.getElementById('move-target-name').textContent = name;
+        document.querySelectorAll('#move-folder-tree .move-folder-item').forEach(e => {
+            e.classList.remove('move-folder-selected');
+            e.style.background = '';
+            e.style.color = '';
+            e.style.fontWeight = '';
+        });
+        el.classList.add('move-folder-selected');
+        el.style.background = 'var(--accent-light)';
+        el.style.color = 'var(--accent)';
+        el.style.fontWeight = '500';
+    }
+
+    async function doMove() {
+        const fileId = document.getElementById('moveFileId').value;
+        try {
+            const res = await fetch(`/api/disk/move/${fileId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ targetParentId: moveTargetParentId })
+            });
+            if (res.ok) {
+                getMoveModal().hide();
+                loadFiles();
+            } else {
+                alert('移动失败：' + await res.text());
+            }
+        } catch(e) { alert('移动失败：' + e.message); }
+    }
+
+    // ── 修改密码 ──
+    function showChangePwdModal() {
+        document.getElementById('pwd-old').value='';
+        document.getElementById('pwd-new').value='';
+        document.getElementById('pwd-confirm').value='';
+        const msg=document.getElementById('pwd-msg'); msg.style.display='none';
+        new bootstrap.Modal(document.getElementById('changePwdModal')).show();
+    }
+    async function doChangePwd() {
+        const oldPwd=document.getElementById('pwd-old').value;
+        const newPwd=document.getElementById('pwd-new').value;
+        const confirm=document.getElementById('pwd-confirm').value;
+        const msg=document.getElementById('pwd-msg');
+        const showMsg=(text,ok)=>{
+            msg.textContent=text;
+            msg.style.background=ok?'#f0fdf4':'#fef2f2';
+            msg.style.color=ok?'#166534':'#991b1b';
+            msg.style.display='block';
+        };
+        if(!oldPwd||!newPwd||!confirm){showMsg('请填写所有字段','err');return;}
+        if(newPwd.length<6){showMsg('新密码至少需要6位','err');return;}
+        if(newPwd!==confirm){showMsg('两次输入的新密码不一致','err');return;}
+        try {
+            const res=await fetch('/api/change-password',{
+                method:'POST',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({oldPassword:oldPwd,newPassword:newPwd})
+            });
+            const data=await res.json();
+            if(res.ok){
+                showMsg('密码修改成功 ✓',true);
+                setTimeout(()=>bootstrap.Modal.getInstance(document.getElementById('changePwdModal')).hide(),1500);
+            } else {
+                showMsg(data.message||'修改失败','err');
+            }
+        } catch(e){ showMsg('网络错误','err'); }
+    }
+
+    // ── 注销账户 ──
+    function showDeleteAccountModal() {
+        document.getElementById('del-pwd').value='';
+        const msg=document.getElementById('del-msg'); msg.style.display='none';
+        new bootstrap.Modal(document.getElementById('deleteAccountModal')).show();
+    }
+    async function doDeleteAccount() {
+        const pwd=document.getElementById('del-pwd').value;
+        const msg=document.getElementById('del-msg');
+        const showMsg=(text,ok)=>{
+            msg.textContent=text;
+            msg.style.background=ok?'#f0fdf4':'#fef2f2';
+            msg.style.color=ok?'#166534':'#991b1b';
+            msg.style.display='block';
+        };
+        if(!pwd){showMsg('请输入密码','err');return;}
+        try {
+            const res=await fetch('/api/delete-user',{
+                method:'DELETE',
+                headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({password:pwd})
+            });
+            const data=await res.json();
+            if(res.ok){
+                showMsg('注销成功，正在跳转…',true);
+                setTimeout(()=>location.href='/login/login.html',1500);
+            } else if(res.status===403){
+                showMsg('密码不正确','err');
+            } else {
+                showMsg(data.message||'注销失败','err');
+            }
+        } catch(e){ showMsg('网络错误','err'); }
+    }
 
     // ════════════ Transfer Manager ════════════
     let tasks={}, tid=0;

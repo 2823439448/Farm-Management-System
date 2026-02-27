@@ -7,7 +7,9 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.File;
 import java.nio.file.*;
+import java.text.Collator;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 public class FileService {
@@ -176,10 +178,10 @@ public class FileService {
 
     // 获取文件列表（支持目录浏览）
     public List<Map<String, Object>> getFiles(int userId, Long parentId, String viewType) {
-        String sql = "";
+        String sql;
+        List<Map<String, Object>> result;
 
         if ("mine".equals(viewType)) {
-            // 我的文件
             sql = """
             SELECT f.file_id as id,
                    f.filename,
@@ -194,12 +196,10 @@ public class FileService {
             FROM user_files f
             JOIN users u ON f.owner_id=u.user_id
             WHERE f.owner_id=? AND IFNULL(f.parent_id,0)=?
-            ORDER BY f.is_directory DESC, f.filename ASC
             """;
-            return jdbcTemplate.queryForList(sql, userId, parentId == null ? 0 : parentId);
+            result = jdbcTemplate.queryForList(sql, userId, parentId == null ? 0 : parentId);
 
         } else if ("shared".equals(viewType)) {
-            // 共享给我的文件
             sql = """
             SELECT f.file_id as id,
                    f.filename,
@@ -222,12 +222,10 @@ public class FileService {
             WHERE f.owner_id!=? 
               AND (f.is_public=1 OR p.user_id IS NOT NULL)
               AND IFNULL(f.parent_id,0)=?
-            ORDER BY f.is_directory DESC, f.filename ASC
             """;
-            return jdbcTemplate.queryForList(sql, userId, userId, parentId == null ? 0 : parentId);
+            result = jdbcTemplate.queryForList(sql, userId, userId, parentId == null ? 0 : parentId);
 
         } else {
-            // 全部（默认）
             sql = """
             SELECT f.file_id as id,
                    f.filename,
@@ -251,10 +249,137 @@ public class FileService {
             LEFT JOIN file_permissions p ON p.file_id=f.file_id AND p.user_id=?
             WHERE (f.owner_id=? OR f.is_public=1 OR p.user_id IS NOT NULL)
               AND IFNULL(f.parent_id,0)=?
-            ORDER BY f.is_directory DESC, f.filename ASC
             """;
-            return jdbcTemplate.queryForList(sql, userId, userId, userId, parentId == null ? 0 : parentId);
+            result = jdbcTemplate.queryForList(sql, userId, userId, userId, parentId == null ? 0 : parentId);
         }
+
+        // 用中文感知排序：文件夹在前，然后按拼音/字母顺序排
+        Collator collator = Collator.getInstance(Locale.CHINESE);
+        collator.setStrength(Collator.PRIMARY);
+        result.sort((a, b) -> {
+            Object aDirObj = a.get("is_directory");
+            Object bDirObj = b.get("is_directory");
+            int aDir = (aDirObj instanceof Boolean) ? ((Boolean) aDirObj ? 1 : 0) : ((Number) aDirObj).intValue();
+            int bDir = (bDirObj instanceof Boolean) ? ((Boolean) bDirObj ? 1 : 0) : ((Number) bDirObj).intValue();
+            if (aDir != bDir) return bDir - aDir; // 文件夹在前
+            String aName = (String) a.get("filename");
+            String bName = (String) b.get("filename");
+            return collator.compare(aName == null ? "" : aName, bName == null ? "" : bName);
+        });
+
+        return result;
+    }
+
+    // 移动文件/文件夹到新的父目录
+    public void moveFile(long fileId, Long targetParentId, int userId, String username) throws Exception {
+        // 查询被移动的文件信息
+        Map<String, Object> file = jdbcTemplate.queryForMap(
+                "SELECT owner_id, filename, storage_path, is_directory FROM user_files WHERE file_id=?", fileId);
+
+        int ownerId = ((Number) file.get("owner_id")).intValue();
+
+        // 检查权限：所有者直接允许；非所有者需要有写权限
+        if (ownerId != userId) {
+            List<Map<String, Object>> perm = jdbcTemplate.queryForList(
+                    "SELECT can_write FROM file_permissions WHERE file_id=? AND user_id=?", fileId, userId);
+            boolean hasWrite = !perm.isEmpty() && ((Number) perm.get(0).get("can_write")).intValue() == 1;
+
+            // 也检查 is_public + can_write
+            Map<String, Object> fileInfo = jdbcTemplate.queryForMap(
+                    "SELECT is_public, can_write FROM user_files WHERE file_id=?", fileId);
+            Object isPubObj = fileInfo.get("is_public");
+            Object canWrObj = fileInfo.get("can_write");
+            int isPub = (isPubObj instanceof Boolean) ? ((Boolean) isPubObj ? 1 : 0) : ((Number) isPubObj).intValue();
+            int canWr = (canWrObj instanceof Boolean) ? ((Boolean) canWrObj ? 1 : 0) : ((Number) canWrObj).intValue();
+            boolean publicWrite = isPub == 1 && canWr == 1;
+
+            if (!hasWrite && !publicWrite) {
+                throw new SecurityException("无权限移动此文件");
+            }
+        }
+
+        // 防止把文件夹移动到自身或子孙目录中
+        Object isDirObj = file.get("is_directory");
+        int isDirectory = (isDirObj instanceof Boolean) ? ((Boolean) isDirObj ? 1 : 0) : ((Number) isDirObj).intValue();
+        if (isDirectory == 1 && targetParentId != null) {
+            if (isDescendantOf(targetParentId, fileId)) {
+                throw new IllegalArgumentException("不能将文件夹移动到其子目录中");
+            }
+        }
+
+        // 计算目标物理路径
+        String targetDirPath = ROOT_PATH + "/" + username;
+        if (targetParentId != null && targetParentId > 0) {
+            Map<String, Object> targetParent = jdbcTemplate.queryForMap(
+                    "SELECT storage_path FROM user_files WHERE file_id=?", targetParentId);
+            targetDirPath = (String) targetParent.get("storage_path");
+        }
+
+        String filename = (String) file.get("filename");
+        String oldPath = (String) file.get("storage_path");
+        Path source = Paths.get(oldPath);
+        Path target = Paths.get(targetDirPath, filename);
+
+        // 如果目标路径已存在同名文件，自动重命名
+        if (Files.exists(target) && !source.equals(target)) {
+            String baseName = filename.contains(".") && isDirectory == 0
+                    ? filename.substring(0, filename.lastIndexOf('.'))
+                    : filename;
+            String ext = filename.contains(".") && isDirectory == 0
+                    ? filename.substring(filename.lastIndexOf('.'))
+                    : "";
+            int i = 1;
+            while (Files.exists(target)) {
+                target = Paths.get(targetDirPath, baseName + "(" + i + ")" + ext);
+                i++;
+            }
+        }
+
+        // 物理移动
+        Files.move(source, target, StandardCopyOption.ATOMIC_MOVE);
+
+        String newPath = target.toString();
+        String newFilename = target.getFileName().toString();
+
+        // 更新数据库：当前文件
+        jdbcTemplate.update(
+                "UPDATE user_files SET parent_id=?, storage_path=?, filename=?, updated_at=NOW() WHERE file_id=?",
+                targetParentId, newPath, newFilename, fileId);
+
+        // 如果是文件夹，递归更新所有子文件的 storage_path
+        if (isDirectory == 1) {
+            updateChildPaths(fileId, oldPath, newPath);
+        }
+    }
+
+    // 递归更新子文件的 storage_path（文件夹移动后子文件路径前缀变了）
+    private void updateChildPaths(long parentId, String oldParentPath, String newParentPath) {
+        List<Map<String, Object>> children = jdbcTemplate.queryForList(
+                "SELECT file_id, storage_path, is_directory FROM user_files WHERE parent_id=?", parentId);
+        for (Map<String, Object> child : children) {
+            long childId = ((Number) child.get("file_id")).longValue();
+            String oldChildPath = (String) child.get("storage_path");
+            String newChildPath = newParentPath + oldChildPath.substring(oldParentPath.length());
+            Object isDirObj = child.get("is_directory");
+            int isDir = (isDirObj instanceof Boolean) ? ((Boolean) isDirObj ? 1 : 0) : ((Number) isDirObj).intValue();
+            jdbcTemplate.update("UPDATE user_files SET storage_path=?, updated_at=NOW() WHERE file_id=?",
+                    newChildPath, childId);
+            if (isDir == 1) {
+                updateChildPaths(childId, oldChildPath, newChildPath);
+            }
+        }
+    }
+
+    // 判断 targetId 是否是 ancestorId 的子孙目录
+    private boolean isDescendantOf(long targetId, long ancestorId) {
+        List<Map<String, Object>> children = jdbcTemplate.queryForList(
+                "SELECT file_id FROM user_files WHERE parent_id=?", ancestorId);
+        for (Map<String, Object> child : children) {
+            long childId = ((Number) child.get("file_id")).longValue();
+            if (childId == targetId) return true;
+            if (isDescendantOf(targetId, childId)) return true;
+        }
+        return false;
     }
 
     // 获取面包屑导航

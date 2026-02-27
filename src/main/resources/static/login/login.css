@@ -71,6 +71,18 @@ body {
     box-shadow: none;
 }
 
+/* 去掉自动填充时浏览器加的白色背景 */
+.input-field:-webkit-autofill,
+.input-field:-webkit-autofill:hover,
+.input-field:-webkit-autofill:focus,
+.input-field:-webkit-autofill:active {
+    -webkit-box-shadow: 0 0 0px 1000px transparent inset !important;
+    box-shadow: 0 0 0px 1000px transparent inset !important;
+    -webkit-text-fill-color: black !important;
+    transition: background-color 5000s ease-in-out 0s;
+    background-color: transparent !important;
+}
+
 /* 6. 按钮行样式 (包含登录和注册) */
 .register-line {
     width: 100%;
@@ -95,7 +107,7 @@ body {
     color: #444;
 }
 
-/* 7. 特殊微调：让“登录”按钮单独向左平移 */
+/* 7. 特殊微调：让"登录"按钮单独向左平移 */
 /* 如果你觉得间距不够，调大这个 6vw 即可 */
 .register-line a:first-child {
     margin-right: 15vw;

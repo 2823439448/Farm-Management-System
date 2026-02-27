@@ -359,6 +359,59 @@ public class DiskController {
         }
     }
 
+    // 移动文件/文件夹
+    @PutMapping("/move/{fileId}")
+    public ResponseEntity<String> move(
+            @PathVariable long fileId,
+            @RequestBody Map<String, Object> request,
+            HttpSession session) {
+
+        Integer uid = (Integer) session.getAttribute("userId");
+        String username = (String) session.getAttribute("username");
+        if (uid == null || username == null) {
+            return ResponseEntity.status(401).body("未登录");
+        }
+
+        try {
+            Long targetParentId = request.get("targetParentId") != null
+                    ? ((Number) request.get("targetParentId")).longValue() : null;
+            fileService.moveFile(fileId, targetParentId, uid, username);
+            return ResponseEntity.ok("移动成功");
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(e.getMessage());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(400).body(e.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body("移动失败：" + e.getMessage());
+        }
+    }
+
+    // 获取当前用户可写入的所有文件夹（自己的 + 公开可写 + 被分享可写）
+    @GetMapping("/folders")
+    public ResponseEntity<?> getFolders(HttpSession session) {
+        Integer uid = (Integer) session.getAttribute("userId");
+        if (uid == null) return ResponseEntity.status(401).body("未登录");
+        try {
+            String sql = """
+                SELECT DISTINCT f.file_id, f.filename, f.parent_id, f.owner_id
+                FROM user_files f
+                LEFT JOIN file_permissions p ON p.file_id = f.file_id AND p.user_id = ?
+                WHERE f.is_directory = 1
+                  AND (
+                      f.owner_id = ?
+                      OR (f.is_public = 1 AND f.can_write = 1)
+                      OR p.can_write = 1
+                  )
+                ORDER BY f.filename ASC
+                """;
+            List<Map<String, Object>> folders = jdbcTemplate.queryForList(sql, uid, uid);
+            return ResponseEntity.ok(folders);
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("获取文件夹列表失败");
+        }
+    }
+
     // 退出登录
     @PostMapping("/logout")
     public ResponseEntity<String> logout(HttpSession session) {
