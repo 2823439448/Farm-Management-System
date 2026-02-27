@@ -5,90 +5,345 @@
     <title>云网盘</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        .sidebar { width: 240px; height: 100vh; background: #fff; position: fixed; border-right: 1px solid #ddd; overflow-y: auto; }
-        .main { margin-left: 240px; padding: 30px; }
-        .nav-link { cursor: pointer; color: #333; padding: 15px 25px; }
-        .nav-link.active { background: #e7f1ff; color: #007bff !important; font-weight: bold; border-right: 4px solid #007bff; }
-        .breadcrumb { background: #f8f9fa; padding: 10px 15px; border-radius: 5px; margin-bottom: 20px; }
-        .breadcrumb-item { cursor: pointer; }
-        .breadcrumb-item:hover { text-decoration: underline; }
-        .file-item { cursor: pointer; transition: background 0.2s; }
-        .file-item:hover { background: #f8f9fa; }
-        .folder-icon { color: #ffc107; font-size: 1.2em; }
-        .file-icon { color: #6c757d; font-size: 1.2em; }
-        .dropdown-menu { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        :root {
+            --sidebar-w: 220px;
+            --accent: #3b72f6;
+            --accent-light: #eef2ff;
+            --accent-hover: #2b5ce6;
+            --text-primary: #1a1d23;
+            --text-secondary: #6b7280;
+            --border: #e8eaed;
+            --bg-main: #f5f6f8;
+            --sidebar-bg: #ffffff;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --warn: #f59e0b;
+        }
+        * { box-sizing: border-box; }
+        body { font-family: 'Noto Sans SC', sans-serif; background: var(--bg-main); color: var(--text-primary); margin: 0; }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            width: var(--sidebar-w); height: 100vh;
+            background: var(--sidebar-bg);
+            position: fixed; left: 0; top: 0;
+            display: flex; flex-direction: column;
+            border-right: 1px solid var(--border);
+            z-index: 100;
+        }
+        .sidebar-logo {
+            padding: 20px 18px 16px;
+            display: flex; align-items: center; gap: 10px;
+            border-bottom: 1px solid var(--border);
+        }
+        .logo-icon {
+            width: 30px; height: 30px; background: var(--accent);
+            border-radius: 8px; display: flex; align-items: center;
+            justify-content: center; color: #fff; font-size: 13px;
+        }
+        .logo-text { font-size: 15px; font-weight: 600; }
+        .nav-section { padding: 12px 10px 0; flex: 1; overflow-y: auto; }
+        .nav-label {
+            font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+            color: var(--text-secondary); padding: 4px 10px 6px;
+            text-transform: uppercase;
+        }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 12px; border-radius: 8px; cursor: pointer;
+            font-size: 13.5px; color: var(--text-secondary);
+            font-weight: 400; transition: all 0.15s; margin-bottom: 2px;
+        }
+        .nav-item i { width: 16px; text-align: center; font-size: 13px; }
+        .nav-item:hover { background: var(--bg-main); color: var(--text-primary); }
+        .nav-item.active { background: var(--accent-light); color: var(--accent); font-weight: 500; }
+        .nav-item.danger { color: #ef4444; }
+        .nav-item.danger:hover { background: #fef2f2; }
+
+        /* ── Transfer Panel ── */
+        .transfer-panel {
+            border-top: 1px solid var(--border);
+            padding: 12px 14px 14px;
+        }
+        .transfer-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 8px;
+        }
+        .transfer-title {
+            font-size: 10.5px; font-weight: 600; letter-spacing: 0.07em;
+            color: var(--text-secondary); text-transform: uppercase;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .transfer-dot {
+            width: 6px; height: 6px; border-radius: 50%;
+            background: var(--success); display: none;
+        }
+        .transfer-dot.active { display: block; animation: blink 1.4s infinite; }
+        @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+        .t-clear-btn {
+            font-size: 11px; color: var(--text-secondary);
+            cursor: pointer; padding: 2px 7px; border-radius: 5px;
+            transition: background 0.1s; display: none;
+        }
+        .t-clear-btn:hover { background: var(--bg-main); }
+        .transfer-list { display: flex; flex-direction: column; gap: 6px; max-height: 210px; overflow-y: auto; }
+        .transfer-list::-webkit-scrollbar { width: 3px; }
+        .transfer-list::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 99px; }
+        .t-empty {
+            text-align: center; padding: 10px 0 6px;
+            color: #c4c9d4; font-size: 12px;
+        }
+        .t-empty i { display: block; font-size: 18px; margin-bottom: 5px; opacity: 0.35; }
+
+        /* Task card */
+        .t-card {
+            background: var(--bg-main); border-radius: 8px;
+            padding: 8px 10px 7px;
+        }
+        .t-head { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; }
+        .t-badge {
+            width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 9px; color: #fff;
+        }
+        .t-badge.up   { background: var(--accent); }
+        .t-badge.down { background: #06b6d4; }
+        .t-badge.ok   { background: var(--success); }
+        .t-badge.err  { background: var(--danger); }
+        .t-name {
+            font-size: 12px; font-weight: 500; flex: 1;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            color: var(--text-primary);
+        }
+        .t-pct { font-size: 11px; font-weight: 600; color: var(--text-secondary); flex-shrink: 0; }
+        .t-track { height: 3px; background: #dfe2e8; border-radius: 99px; overflow: hidden; margin-bottom: 4px; }
+        .t-fill { height: 100%; border-radius: 99px; background: var(--accent); transition: width 0.25s ease; }
+        .t-fill.ok  { background: var(--success); }
+        .t-fill.err { background: var(--danger); }
+        .t-foot { display: flex; justify-content: space-between; }
+        .t-speed { font-size: 10.5px; color: var(--text-secondary); }
+        .t-status { font-size: 10.5px; }
+        .t-status.ok   { color: var(--success); }
+        .t-status.fail { color: var(--danger); }
+
+        /* ── Main ── */
+        .main { margin-left: var(--sidebar-w); padding: 28px 32px; min-height: 100vh; }
+
+        /* Storage */
+        .page-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+        .page-title { font-size: 19px; font-weight: 600; }
+        .storage-card {
+            background: #fff; border-radius: 14px; padding: 24px 26px;
+            max-width: 540px; border: 1px solid var(--border);
+            box-shadow: 0 1px 4px rgba(0,0,0,0.05);
+        }
+        .storage-lbl { font-size: 12.5px; color: var(--text-secondary); margin-bottom: 6px; }
+        .storage-num { font-size: 28px; font-weight: 600; margin-bottom: 14px; letter-spacing: -0.5px; }
+        .storage-num span { font-size: 14px; font-weight: 400; color: var(--text-secondary); }
+        .storage-track { height: 8px; background: #eef0f3; border-radius: 99px; overflow: hidden; margin-bottom: 10px; }
+        .storage-fill { height: 100%; border-radius: 99px; background: linear-gradient(90deg, var(--accent), #7c9fff); transition: width 0.6s ease; }
+        .storage-foot { display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary); }
+
+        /* Toolbar */
+        .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+        .toolbar-actions { display: flex; gap: 9px; }
+        .btn-act {
+            display: inline-flex; align-items: center; gap: 7px;
+            padding: 8px 15px; border-radius: 8px; border: none;
+            font-size: 13px; font-family: inherit; font-weight: 500;
+            cursor: pointer; transition: all 0.15s;
+        }
+        .btn-pri { background: var(--accent); color: #fff; }
+        .btn-pri:hover { background: var(--accent-hover); }
+        .btn-ghost { background: #fff; color: var(--text-primary); border: 1px solid var(--border); }
+        .btn-ghost:hover { background: var(--bg-main); }
+
+        /* Breadcrumb */
+        .breadcrumb-bar { display: flex; align-items: center; gap: 4px; font-size: 13px; margin-bottom: 14px; }
+        .bc-link { color: var(--accent); cursor: pointer; padding: 2px 6px; border-radius: 4px; transition: background 0.1s; }
+        .bc-link:hover { background: var(--accent-light); }
+        .bc-sep { color: #d1d5db; margin: 0 1px; }
+
+        /* File table */
+        .file-card { background: #fff; border-radius: 12px; border: 1px solid var(--border); overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,0.04); }
+        .file-table { width: 100%; border-collapse: collapse; }
+        .file-table thead th {
+            font-size: 11px; font-weight: 600; letter-spacing: 0.05em;
+            text-transform: uppercase; color: var(--text-secondary);
+            padding: 11px 16px; background: #fafbfc;
+            border-bottom: 1px solid var(--border); text-align: left;
+        }
+        .file-table tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+        .file-table tbody tr:last-child { border-bottom: none; }
+        .file-table tbody tr:hover { background: #fafbfc; }
+        .file-table td { padding: 10px 16px; font-size: 13.5px; }
+        .file-name-cell { display: flex; align-items: center; gap: 10px; }
+        .file-ico { width: 30px; height: 30px; border-radius: 7px; display: flex; align-items: center; justify-content: center; font-size: 13px; flex-shrink: 0; }
+        .file-ico.folder { background: #fff8e1; color: #f59e0b; }
+        .file-ico.file { background: #f0f4ff; color: #6b84d6; }
+        .file-fname { font-weight: 500; }
+        .file-meta { font-size: 13px; color: var(--text-secondary); }
+
+        .badge-c { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 99px; font-size: 11.5px; font-weight: 500; }
+        .badge-priv { background: #f3f4f6; color: #6b7280; }
+        .badge-pub-r { background: #e0f2fe; color: #0369a1; }
+        .badge-pub-w { background: #fef3c7; color: #92400e; }
+        .badge-sh-r  { background: #f0fdf4; color: #166534; }
+        .badge-sh-w  { background: #fef2f2; color: #991b1b; }
+
+        .action-group { display: flex; gap: 5px; }
+        .btn-ic {
+            width: 29px; height: 29px; border-radius: 7px;
+            border: 1px solid var(--border); background: #fff;
+            color: var(--text-secondary); display: flex; align-items: center;
+            justify-content: center; font-size: 11.5px; cursor: pointer; transition: all 0.15s;
+        }
+        .btn-ic:hover { background: var(--bg-main); }
+        .btn-ic.blue:hover { background: #eef2ff; color: var(--accent); border-color: var(--accent); }
+        .btn-ic.red:hover  { background: #fef2f2; color: var(--danger); border-color: var(--danger); }
+        .btn-ic.warn:hover { background: #fffbeb; color: var(--warn); border-color: var(--warn); }
+        .btn-ic.teal:hover { background: #ecfeff; color: #06b6d4; border-color: #06b6d4; }
+
+        .empty-state { text-align: center; padding: 56px 20px; color: var(--text-secondary); }
+        .empty-state i { font-size: 32px; margin-bottom: 10px; opacity: 0.2; display: block; }
+        .empty-state p { font-size: 14px; }
+
+        /* Modal */
+        .modal-content { border-radius: 14px; border: none; box-shadow: 0 8px 40px rgba(0,0,0,0.13); }
+        .modal-header { border-bottom: 1px solid var(--border); padding: 18px 22px 14px; }
+        .modal-title { font-size: 15px; font-weight: 600; }
+        .modal-body { padding: 20px 22px; }
+        .modal-footer { border-top: 1px solid var(--border); padding: 14px 22px; gap: 8px; }
+        .form-control {
+            border: 1.5px solid var(--border); border-radius: 8px; padding: 9px 13px;
+            font-family: inherit; font-size: 14px; color: var(--text-primary); transition: border-color 0.15s;
+        }
+        .form-control:focus { border-color: var(--accent); outline: none; box-shadow: 0 0 0 3px rgba(59,114,246,0.1); }
+        .m-btn {
+            padding: 8px 18px; border-radius: 8px; border: none;
+            font-family: inherit; font-size: 13.5px; font-weight: 500; cursor: pointer; transition: all 0.15s;
+        }
+        .m-btn.sec { background: var(--bg-main); color: var(--text-secondary); }
+        .m-btn.sec:hover { background: #e5e7eb; }
+        .m-btn.pri { background: var(--accent); color: #fff; }
+        .m-btn.pri:hover { background: var(--accent-hover); }
+
+        .perm-option {
+            border: 1.5px solid var(--border); border-radius: 10px;
+            padding: 13px 15px; margin-bottom: 10px;
+            display: flex; align-items: center; gap: 12px;
+            cursor: pointer; transition: border-color 0.15s;
+        }
+        .perm-option:hover { border-color: var(--accent); }
+        .perm-option:last-child { margin-bottom: 0; }
+        .perm-txt .perm-name { font-size: 13.5px; font-weight: 500; }
+        .perm-txt .perm-desc { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
     </style>
 </head>
 <body>
+
+<!-- ══ SIDEBAR ══ -->
 <div class="sidebar">
-    <div class="p-4 border-bottom"><h4>云网盘</h4></div>
-    <div class="nav flex-column mt-3">
-        <div id="nav-disk" class="nav-link active" onclick="show('disk')">
-            <i class="fas fa-hdd w-25"></i> 磁盘占用
+    <div class="sidebar-logo">
+        <div class="logo-icon"><i class="fas fa-cloud"></i></div>
+        <span class="logo-text">云网盘</span>
+    </div>
+
+    <div class="nav-section">
+        <div class="nav-label">概览</div>
+        <div id="nav-disk" class="nav-item active" onclick="show('disk')">
+            <i class="fas fa-chart-pie"></i> 存储概况
         </div>
-        <div id="nav-mine" class="nav-link" onclick="show('mine')">
-            <i class="fas fa-folder w-25"></i> 我的文件
+        <div class="nav-label" style="margin-top:10px;">文件</div>
+        <div id="nav-mine" class="nav-item" onclick="show('mine')">
+            <i class="fas fa-folder"></i> 我的文件
         </div>
-        <div id="nav-shared" class="nav-link" onclick="show('shared')">
-            <i class="fas fa-share-alt w-25"></i> 共享给我
+        <div id="nav-shared" class="nav-item" onclick="show('shared')">
+            <i class="fas fa-share-nodes"></i> 共享给我
         </div>
-        <div id="nav-all" class="nav-link" onclick="show('all')">
-            <i class="fas fa-file w-25"></i> 全部文件
+        <div id="nav-all" class="nav-item" onclick="show('all')">
+            <i class="fas fa-layer-group"></i> 全部文件
         </div>
-        <div class="nav-link text-danger mt-5" onclick="logout()">退出登录</div>
+        <div class="nav-label" style="margin-top:10px;">账户</div>
+        <div class="nav-item danger" onclick="logout()">
+            <i class="fas fa-arrow-right-from-bracket"></i> 退出登录
+        </div>
+    </div>
+
+    <!-- 传输进度面板 -->
+    <div class="transfer-panel">
+        <div class="transfer-header">
+            <div class="transfer-title">
+                <div class="transfer-dot" id="t-dot"></div>
+                传输进度
+            </div>
+            <span class="t-clear-btn" id="t-clear" onclick="clearDone()">清除已完成</span>
+        </div>
+        <div class="transfer-list" id="t-list">
+            <div class="t-empty" id="t-empty">
+                <i class="fas fa-arrow-right-arrow-left"></i>
+                暂无传输任务
+            </div>
+        </div>
     </div>
 </div>
 
+
+<!-- ══ MAIN ══ -->
 <div class="main">
-    <!-- 磁盘占用 -->
+
+    <!-- 存储概况 -->
     <div id="section-disk">
-        <h3>存储状态</h3>
-        <div class="card p-4 mt-4 shadow-sm col-md-6">
-            <div class="d-flex justify-content-between mb-2">
-                <span>使用进度</span><strong id="disk-percent">0%</strong>
+        <div class="page-header">
+            <div class="page-title">存储概况</div>
+        </div>
+        <div class="storage-card">
+            <div class="storage-lbl">存储空间使用</div>
+            <div class="storage-num">
+                <span id="disk-used">—</span> GB
+                <span>/ <span id="disk-total">—</span> GB</span>
             </div>
-            <div class="progress mb-3" style="height: 15px;">
-                <div id="disk-bar" class="progress-bar progress-bar-striped bg-primary"></div>
+            <div class="storage-track">
+                <div id="disk-bar" class="storage-fill" style="width:0%"></div>
             </div>
-            <p id="disk-text" class="text-muted small"></p>
+            <div class="storage-foot">
+                <span id="disk-pct">计算中…</span>
+                <span>可用 <strong id="disk-free">—</strong> GB</span>
+            </div>
         </div>
     </div>
 
     <!-- 文件列表 -->
     <div id="section-files" style="display:none;">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h3 id="view-title">我的文件</h3>
-            <div>
-                <button class="btn btn-success me-2" onclick="showCreateFolderDialog()">
+        <div class="toolbar">
+            <div id="view-title" class="page-title">我的文件</div>
+            <div class="toolbar-actions">
+                <button class="btn-act btn-ghost" onclick="showCreateFolderDialog()">
                     <i class="fas fa-folder-plus"></i> 新建文件夹
                 </button>
                 <input type="file" id="realFile" style="display:none" onchange="doUpload()">
-                <button class="btn btn-primary" onclick="document.getElementById('realFile').click()">
-                    <i class="fas fa-upload"></i> 上传文件
+                <button class="btn-act btn-pri" onclick="document.getElementById('realFile').click()">
+                    <i class="fas fa-arrow-up-from-bracket"></i> 上传文件
                 </button>
             </div>
         </div>
 
-        <!-- 面包屑导航 -->
-        <nav id="breadcrumb-nav" style="display:none;">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item" onclick="navigateToRoot()">
-                    <i class="fas fa-home"></i> 根目录
-                </li>
-                <span id="breadcrumb-items"></span>
-            </ol>
+        <nav id="bc-nav" style="display:none;" class="breadcrumb-bar">
+            <span class="bc-link" onclick="navigateToRoot()"><i class="fas fa-house" style="font-size:11px;"></i> 根目录</span>
+            <span id="bc-items"></span>
         </nav>
 
-        <div class="card shadow-sm">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light">
+        <div class="file-card">
+            <table class="file-table">
+                <thead>
                 <tr>
-                    <th width="40%">文件名</th>
-                    <th width="15%">拥有者</th>
-                    <th width="12%">大小</th>
-                    <th width="15%">权限状态</th>
-                    <th width="18%">操作</th>
+                    <th style="width:40%">文件名</th>
+                    <th style="width:15%">拥有者</th>
+                    <th style="width:12%">大小</th>
+                    <th style="width:15%">权限</th>
+                    <th style="width:18%">操作</th>
                 </tr>
                 </thead>
                 <tbody id="file-list"></tbody>
@@ -97,7 +352,8 @@
     </div>
 </div>
 
-<!-- 创建文件夹对话框 -->
+
+<!-- ══ MODALS ══ -->
 <div class="modal fade" id="createFolderModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -106,17 +362,17 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <input type="text" id="folderNameInput" class="form-control" placeholder="请输入文件夹名称">
+                <label style="font-size:13px;color:#6b7280;margin-bottom:6px;display:block;">文件夹名称</label>
+                <input type="text" id="folderNameInput" class="form-control" placeholder="请输入名称">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="createFolder()">创建</button>
+                <button class="m-btn sec" data-bs-dismiss="modal">取消</button>
+                <button class="m-btn pri" onclick="createFolder()">创建</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 重命名对话框 -->
 <div class="modal fade" id="renameModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -125,18 +381,18 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
+                <label style="font-size:13px;color:#6b7280;margin-bottom:6px;display:block;">新名称</label>
                 <input type="text" id="renameInput" class="form-control" placeholder="请输入新名称">
                 <input type="hidden" id="renameFileId">
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="doRename()">确定</button>
+                <button class="m-btn sec" data-bs-dismiss="modal">取消</button>
+                <button class="m-btn pri" onclick="doRename()">确定</button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- 权限设置对话框 -->
 <div class="modal fade" id="permissionModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -146,348 +402,262 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="permissionFileId">
-                <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" id="isPublicCheck">
-                    <label class="form-check-label" for="isPublicCheck">
-                        <strong>公开文件</strong>（所有人可见）
-                    </label>
-                    <small class="form-text text-muted d-block ms-4">勾选后，所有登录用户都能查看和下载此文件</small>
-                </div>
-                <div class="form-check mb-3">
-                    <input class="form-check-input" type="checkbox" id="canWriteCheck">
-                    <label class="form-check-label" for="canWriteCheck">
-                        <strong>允许他人修改</strong>（仅在公开时生效）
-                    </label>
-                    <small class="form-text text-muted d-block ms-4">勾选后，其他用户可以删除、重命名和覆盖上传此文件</small>
-                </div>
+                <label class="perm-option" for="isPublicCheck">
+                    <input class="form-check-input" type="checkbox" id="isPublicCheck" style="margin:0;flex-shrink:0;">
+                    <div class="perm-txt">
+                        <div class="perm-name">公开文件</div>
+                        <div class="perm-desc">所有登录用户可查看和下载</div>
+                    </div>
+                </label>
+                <label class="perm-option" for="canWriteCheck">
+                    <input class="form-check-input" type="checkbox" id="canWriteCheck" style="margin:0;flex-shrink:0;">
+                    <div class="perm-txt">
+                        <div class="perm-name">允许他人修改</div>
+                        <div class="perm-desc">公开时生效，其他用户可删除、重命名、覆盖上传</div>
+                    </div>
+                </label>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                <button type="button" class="btn btn-primary" onclick="savePermission()">保存</button>
+                <button class="m-btn sec" data-bs-dismiss="modal">取消</button>
+                <button class="m-btn pri" onclick="savePermission()">保存</button>
             </div>
         </div>
     </div>
 </div>
 
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    let currentView = 'mine';
-    let currentParentId = null;
+    let currentView = 'mine', currentParentId = null;
 
     function show(view) {
+        document.querySelectorAll('.main > div').forEach(d => d.style.display='none');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
         if (view === 'disk') {
-            document.querySelectorAll('.main > div').forEach(d => d.style.display='none');
             document.getElementById('section-disk').style.display='block';
+            document.getElementById('nav-disk').classList.add('active');
             loadDisk();
         } else {
-            currentView = view;
-            document.querySelectorAll('.main > div').forEach(d => d.style.display='none');
+            currentView = view; currentParentId = null;
             document.getElementById('section-files').style.display='block';
-
-            const titles = {
-                'mine': '我的文件',
-                'shared': '共享给我',
-                'all': '全部文件'
-            };
-            document.getElementById('view-title').innerText = titles[view];
-
-            currentParentId = null;
+            document.getElementById('nav-'+view).classList.add('active');
+            document.getElementById('view-title').textContent = {mine:'我的文件',shared:'共享给我',all:'全部文件'}[view];
             loadFiles();
         }
-
-        document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
-        document.getElementById('nav-' + (view === 'disk' ? 'disk' : view)).classList.add('active');
     }
 
     async function loadFiles() {
-        const url = `/api/disk/list?viewType=${currentView}` +
-            (currentParentId ? `&parentId=${currentParentId}` : '');
-        const res = await fetch(url);
-        const data = await res.json();
-
+        const url = `/api/disk/list?viewType=${currentView}`+(currentParentId?`&parentId=${currentParentId}`:'');
+        const data = await (await fetch(url)).json();
         renderBreadcrumb(data.breadcrumb);
         renderFileList(data.files);
     }
 
-    function renderBreadcrumb(breadcrumb) {
-        const nav = document.getElementById('breadcrumb-nav');
-        const items = document.getElementById('breadcrumb-items');
-
-        if (breadcrumb && breadcrumb.length > 0) {
-            nav.style.display = 'block';
-            items.innerHTML = breadcrumb.map(crumb =>
-                `<li class="breadcrumb-item" onclick="navigateTo(${crumb.id})">${crumb.name}</li>`
-            ).join('');
-        } else {
-            nav.style.display = 'none';
-        }
+    function renderBreadcrumb(bc) {
+        const nav = document.getElementById('bc-nav');
+        const items = document.getElementById('bc-items');
+        if (bc && bc.length > 0) {
+            nav.style.display='flex';
+            items.innerHTML = bc.map(c=>`<span class="bc-sep">/</span><span class="bc-link" onclick="navigateTo(${c.id})">${c.name}</span>`).join('');
+        } else { nav.style.display='none'; }
     }
 
     function renderFileList(files) {
         const tbody = document.getElementById('file-list');
-
-        if (!files || files.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center py-5 text-muted">暂无文件</td></tr>';
+        if (!files || files.length===0) {
+            tbody.innerHTML=`<tr><td colspan="5"><div class="empty-state"><i class="fas fa-box-open"></i><p>暂无文件</p></div></td></tr>`;
             return;
         }
-
         tbody.innerHTML = files.map(f => {
-            const isDirectory = f.is_directory === 1;
-            const icon = isDirectory ?
-                '<i class="fas fa-folder folder-icon me-2"></i>' :
-                '<i class="fas fa-file file-icon me-2"></i>';
-
-            const size = isDirectory ? '-' : formatSize(f.file_size);
-
-            // 显示权限状态（只针对自己的文件）
-            let permissionBadge = '';
-            if (f.source === 'mine') {
-                const isPublic = f.is_public === 1;
-                const canWrite = f.can_write === 1;
-
-                if (!isPublic) {
-                    // 私有文件
-                    permissionBadge = '<span class="badge bg-secondary" title="私有文件，只有您可以访问"><i class="fas fa-lock"></i> 私有</span>';
-                } else if (isPublic && canWrite) {
-                    // 公开可写
-                    permissionBadge = '<span class="badge bg-danger" title="公开文件，所有人可查看、下载、修改、删除"><i class="fas fa-globe"></i> 公开可写</span>';
-                } else {
-                    // 公开只读
-                    permissionBadge = '<span class="badge bg-info" title="公开文件，所有人可查看和下载"><i class="fas fa-eye"></i> 公开只读</span>';
-                }
+            const isDir = f.is_directory===1;
+            const ico = isDir
+                ? `<div class="file-ico folder"><i class="fas fa-folder"></i></div>`
+                : `<div class="file-ico file"><i class="fas fa-file"></i></div>`;
+            const size = isDir ? '—' : formatSize(f.file_size);
+            let badge='';
+            if (f.source==='mine') {
+                const p=f.is_public===1, w=f.can_write===1;
+                badge = !p
+                    ? `<span class="badge-c badge-priv"><i class="fas fa-lock" style="font-size:9px;"></i> 私有</span>`
+                    : (w ? `<span class="badge-c badge-pub-w"><i class="fas fa-globe" style="font-size:9px;"></i> 公开可写</span>`
+                        : `<span class="badge-c badge-pub-r"><i class="fas fa-eye" style="font-size:9px;"></i> 公开只读</span>`);
             } else {
-                // 别人的文件，显示来源
-                const sourceBadges = {
-                    'public_read': '<span class="badge bg-info">公开</span>',
-                    'public_write': '<span class="badge bg-primary">公开可写</span>',
-                    'shared_read': '<span class="badge bg-warning">共享只读</span>',
-                    'shared_write': '<span class="badge bg-danger">共享可写</span>'
-                };
-                permissionBadge = sourceBadges[f.source] || '<span class="badge bg-secondary">未知</span>';
+                badge = {public_read:`<span class="badge-c badge-pub-r">公开</span>`,public_write:`<span class="badge-c badge-pub-w">公开可写</span>`,shared_read:`<span class="badge-c badge-sh-r">共享只读</span>`,shared_write:`<span class="badge-c badge-sh-w">共享可写</span>`}[f.source]||'';
             }
-
-            // 判断是否可以操作：我的文件 或 公开可写的文件
-            const canOperate = f.source === 'mine' || f.source === 'public_write';
-
-            const clickAction = isDirectory ? `navigateTo(${f.id})` : '';
-
-            return `
-                <tr class="file-item" ${clickAction ? `onclick="${clickAction}"` : ''}>
-                    <td>${icon}<strong>${f.filename}</strong></td>
-                    <td>${f.owner_name}</td>
-                    <td>${size}</td>
-                    <td>${permissionBadge}</td>
-                    <td onclick="event.stopPropagation()">
-                        <div class="btn-group btn-group-sm">
-                            ${!isDirectory ? `<a href="/api/disk/download/${f.id}" class="btn btn-outline-primary" title="下载">
-                                <i class="fas fa-download"></i>
-                            </a>` : ''}
-                            ${canOperate ? `
-                                <button class="btn btn-outline-warning" onclick="showRenameDialog(${f.id}, '${f.filename}')" title="重命名">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                            ` : ''}
-                            ${f.source === 'mine' ? `
-                                <button class="btn btn-outline-info" onclick="showPermissionDialog(${f.id}, ${f.is_public === 1}, ${f.can_write === 1})" title="权限">
-                                    <i class="fas fa-lock"></i>
-                                </button>
-                            ` : ''}
-                            ${canOperate ? `
-                                <button class="btn btn-outline-danger" onclick="deleteFile(${f.id}, '${f.filename}')" title="删除">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            ` : ''}
-                        </div>
-                    </td>
-                </tr>
-            `;
+            const canOp = f.source==='mine'||f.source==='public_write';
+            return `<tr ${isDir?`onclick="navigateTo(${f.id})" style="cursor:pointer;"`:''}>
+            <td><div class="file-name-cell">${ico}<span class="file-fname">${f.filename}</span></div></td>
+            <td class="file-meta">${f.owner_name}</td>
+            <td class="file-meta">${size}</td>
+            <td>${badge}</td>
+            <td onclick="event.stopPropagation()">
+                <div class="action-group">
+                    ${!isDir?`<button class="btn-ic blue" title="下载" onclick="downloadFile(${f.id},'${f.filename}',${f.file_size||0})"><i class="fas fa-download"></i></button>`:''}
+                    ${canOp?`<button class="btn-ic warn" title="重命名" onclick="showRenameDialog(${f.id},'${f.filename}')"><i class="fas fa-pen"></i></button>`:''}
+                    ${f.source==='mine'?`<button class="btn-ic teal" title="权限" onclick="showPermissionDialog(${f.id},${f.is_public===1},${f.can_write===1})"><i class="fas fa-lock"></i></button>`:''}
+                    ${canOp?`<button class="btn-ic red" title="删除" onclick="deleteFile(${f.id},'${f.filename}')"><i class="fas fa-trash"></i></button>`:''}
+                </div>
+            </td>
+        </tr>`;
         }).join('');
     }
 
-    function formatSize(bytes) {
-        if (bytes === 0) return '0 B';
-        const k = 1024;
-        const sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return (bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i];
+    function formatSize(b) {
+        if(!b||b===0) return '0 B';
+        const k=1024,s=['B','KB','MB','GB'],i=Math.floor(Math.log(b)/Math.log(k));
+        return (b/Math.pow(k,i)).toFixed(1)+' '+s[i];
+    }
+    function navigateTo(id) { currentParentId=id; loadFiles(); }
+    function navigateToRoot() { currentParentId=null; loadFiles(); }
+
+    // ── Upload ──
+    function doUpload() {
+        const file = document.getElementById('realFile').files[0]; if(!file) return;
+        const fd = new FormData(); fd.append('file', file);
+        if(currentParentId) fd.append('parentId', currentParentId);
+        const tid = addTask('up', file.name, file.size);
+        const xhr = new XMLHttpRequest();
+        xhr.upload.onprogress = e => { if(e.lengthComputable) updateTask(tid, e.loaded, e.total); };
+        xhr.onload = () => { xhr.status<300 ? (finishTask(tid,true), loadFiles()) : finishTask(tid,false,xhr.responseText); };
+        xhr.onerror = () => finishTask(tid,false,'网络错误');
+        xhr.open('POST','/api/disk/upload'); xhr.send(fd);
+        document.getElementById('realFile').value='';
     }
 
-    function navigateTo(folderId) {
-        currentParentId = folderId;
-        loadFiles();
-    }
-
-    function navigateToRoot() {
-        currentParentId = null;
-        loadFiles();
-    }
-
-    async function doUpload() {
-        const file = document.getElementById('realFile').files[0];
-        if (!file) return;
-
-        const formData = new FormData();
-        formData.append('file', file);
-        if (currentParentId) {
-            formData.append('parentId', currentParentId);
-        }
-
+    // ── Download ──
+    async function downloadFile(fileId, filename, fileSize) {
+        const tid = addTask('down', filename, fileSize);
         try {
-            const res = await fetch('/api/disk/upload', { method: 'POST', body: formData });
-            const text = await res.text();
-
-            if (res.ok) {
-                alert('上传成功');
-                loadFiles();
-            } else {
-                alert('上传失败：' + text);
+            const res = await fetch(`/api/disk/download/${fileId}`);
+            if(!res.ok) { finishTask(tid,false,await res.text()); return; }
+            const total = parseInt(res.headers.get('Content-Length'))||fileSize;
+            const reader = res.body.getReader(); const chunks=[]; let loaded=0;
+            while(true) {
+                const {done,value} = await reader.read(); if(done) break;
+                chunks.push(value); loaded+=value.length;
+                updateTask(tid,loaded,total||loaded);
             }
-        } catch (e) {
-            alert('上传失败：' + e.message);
-        }
-
-        document.getElementById('realFile').value = '';
+            const url=URL.createObjectURL(new Blob(chunks));
+            const a=Object.assign(document.createElement('a'),{href:url,download:filename});
+            document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+            finishTask(tid,true);
+        } catch(e) { finishTask(tid,false,e.message); }
     }
 
-    function showCreateFolderDialog() {
-        document.getElementById('folderNameInput').value = '';
-        new bootstrap.Modal(document.getElementById('createFolderModal')).show();
-    }
-
+    // ── Folder/Rename/Delete/Permission ──
+    function showCreateFolderDialog() { document.getElementById('folderNameInput').value=''; new bootstrap.Modal(document.getElementById('createFolderModal')).show(); }
     async function createFolder() {
-        const folderName = document.getElementById('folderNameInput').value.trim();
-        if (!folderName) {
-            alert('请输入文件夹名称');
-            return;
-        }
-
-        try {
-            const res = await fetch('/api/disk/createFolder', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    folderName: folderName,
-                    parentId: currentParentId
-                })
-            });
-
-            const text = await res.text();
-
-            if (res.ok) {
-                alert('创建成功');
-                bootstrap.Modal.getInstance(document.getElementById('createFolderModal')).hide();
-                loadFiles();
-            } else {
-                alert('创建失败：' + text);
-            }
-        } catch (e) {
-            alert('创建失败：' + e.message);
-        }
+        const name = document.getElementById('folderNameInput').value.trim(); if(!name){alert('请输入名称');return;}
+        const res = await fetch('/api/disk/createFolder',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({folderName:name,parentId:currentParentId})});
+        if(res.ok){bootstrap.Modal.getInstance(document.getElementById('createFolderModal')).hide();loadFiles();}else alert('创建失败：'+await res.text());
     }
-
-    function showRenameDialog(fileId, currentName) {
-        document.getElementById('renameFileId').value = fileId;
-        document.getElementById('renameInput').value = currentName;
-        new bootstrap.Modal(document.getElementById('renameModal')).show();
+    function showRenameDialog(id,name){document.getElementById('renameFileId').value=id;document.getElementById('renameInput').value=name;new bootstrap.Modal(document.getElementById('renameModal')).show();}
+    async function doRename(){
+        const id=document.getElementById('renameFileId').value,name=document.getElementById('renameInput').value.trim();if(!name){alert('请输入新名称');return;}
+        const res=await fetch(`/api/disk/rename/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({newName:name})});
+        if(res.ok){bootstrap.Modal.getInstance(document.getElementById('renameModal')).hide();loadFiles();}else alert('重命名失败：'+await res.text());
     }
-
-    async function doRename() {
-        const fileId = document.getElementById('renameFileId').value;
-        const newName = document.getElementById('renameInput').value.trim();
-
-        if (!newName) {
-            alert('请输入新名称');
-            return;
-        }
-
-        try {
-            const res = await fetch(`/api/disk/rename/${fileId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ newName: newName })
-            });
-
-            const text = await res.text();
-
-            if (res.ok) {
-                alert('重命名成功');
-                bootstrap.Modal.getInstance(document.getElementById('renameModal')).hide();
-                loadFiles();
-            } else {
-                alert('重命名失败：' + text);
-            }
-        } catch (e) {
-            alert('重命名失败：' + e.message);
-        }
+    async function deleteFile(id,name){
+        if(!confirm(`确定删除 "${name}"？`))return;
+        const res=await fetch(`/api/disk/delete/${id}`,{method:'DELETE'});
+        if(res.ok)loadFiles();else alert('删除失败：'+await res.text());
     }
-
-    async function deleteFile(fileId, filename) {
-        if (!confirm(`确定要删除 "${filename}" 吗？`)) return;
-
-        try {
-            const res = await fetch(`/api/disk/delete/${fileId}`, { method: 'DELETE' });
-            const text = await res.text();
-
-            if (res.ok) {
-                alert('删除成功');
-                loadFiles();
-            } else {
-                alert('删除失败：' + text);
-            }
-        } catch (e) {
-            alert('删除失败：' + e.message);
-        }
-    }
-
-    async function showPermissionDialog(fileId, currentIsPublic, currentCanWrite) {
-        document.getElementById('permissionFileId').value = fileId;
-
-        // 回显当前权限设置
-        document.getElementById('isPublicCheck').checked = currentIsPublic || false;
-        document.getElementById('canWriteCheck').checked = currentCanWrite || false;
-
+    function showPermissionDialog(id,isPublic,canWrite){
+        document.getElementById('permissionFileId').value=id;
+        document.getElementById('isPublicCheck').checked=isPublic;
+        document.getElementById('canWriteCheck').checked=canWrite;
         new bootstrap.Modal(document.getElementById('permissionModal')).show();
     }
+    async function savePermission(){
+        const id=document.getElementById('permissionFileId').value;
+        const res=await fetch(`/api/disk/permission/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({isPublic:document.getElementById('isPublicCheck').checked,canWrite:document.getElementById('canWriteCheck').checked})});
+        if(res.ok){bootstrap.Modal.getInstance(document.getElementById('permissionModal')).hide();loadFiles();}else alert('设置失败：'+await res.text());
+    }
 
-    async function savePermission() {
-        const fileId = document.getElementById('permissionFileId').value;
-        const isPublic = document.getElementById('isPublicCheck').checked;
-        const canWrite = document.getElementById('canWriteCheck').checked;
+    // ── Storage ──
+    async function loadDisk(){
+        const d = await(await fetch('/api/disk/dashboard')).json();
+        document.getElementById('disk-bar').style.width=d.percent+'%';
+        document.getElementById('disk-used').textContent=d.used_gb;
+        document.getElementById('disk-total').textContent=d.total_gb;
+        document.getElementById('disk-pct').textContent=`已使用 ${d.percent}%`;
+        document.getElementById('disk-free').textContent=(parseFloat(d.total_gb)-parseFloat(d.used_gb)).toFixed(2);
+    }
+    function logout(){ fetch('/api/disk/logout',{method:'POST'}).then(()=>location.href='/login/login.html'); }
 
-        try {
-            const res = await fetch(`/api/disk/permission/${fileId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ isPublic, canWrite })
-            });
+    // ════════════ Transfer Manager ════════════
+    let tasks={}, tid=0;
 
-            const text = await res.text();
+    function addTask(type, filename, totalSize) {
+        const id=++tid;
+        tasks[id]={type,filename,totalSize,loaded:0,_t0:Date.now()};
+        document.getElementById('t-empty')?.remove();
+        document.getElementById('t-dot').classList.add('active');
+        document.getElementById('t-clear').style.display='block';
 
-            if (res.ok) {
-                alert('权限设置成功');
-                bootstrap.Modal.getInstance(document.getElementById('permissionModal')).hide();
-                loadFiles();
-            } else {
-                alert('设置失败：' + text);
+        const el=document.createElement('div');
+        el.className='t-card'; el.id=`tc-${id}`;
+        el.innerHTML=`
+        <div class="t-head">
+            <div class="t-badge ${type}" id="tb-${id}"><i class="fas fa-${type==='up'?'arrow-up':'arrow-down'}"></i></div>
+            <div class="t-name" title="${filename}">${filename}</div>
+            <div class="t-pct" id="tp-${id}">0%</div>
+        </div>
+        <div class="t-track"><div class="t-fill" id="tf-${id}" style="width:0%"></div></div>
+        <div class="t-foot">
+            <span class="t-speed" id="ts-${id}">等待中…</span>
+            <span class="t-status" id="tst-${id}"></span>
+        </div>`;
+        document.getElementById('t-list').appendChild(el);
+        return id;
+    }
+
+    function updateTask(id, loaded, total) {
+        if(!tasks[id]) return;
+        tasks[id].loaded=loaded; tasks[id].total=total;
+        const pct=total>0?Math.round(loaded/total*100):0;
+        const elapsed=(Date.now()-tasks[id]._t0)/1000||0.001;
+        document.getElementById(`tf-${id}`).style.width=pct+'%';
+        document.getElementById(`tp-${id}`).textContent=pct+'%';
+        document.getElementById(`ts-${id}`).textContent=formatSize(loaded/elapsed)+'/s';
+    }
+
+    function finishTask(id, ok, err) {
+        if(!tasks[id]) return;
+        tasks[id]._done=true;
+        const fill=document.getElementById(`tf-${id}`);
+        const badge=document.getElementById(`tb-${id}`);
+        const st=document.getElementById(`tst-${id}`);
+        const sp=document.getElementById(`ts-${id}`);
+        if(ok){
+            fill.style.width='100%'; fill.classList.add('ok');
+            badge.className='t-badge ok'; badge.innerHTML='<i class="fas fa-check"></i>';
+            document.getElementById(`tp-${id}`).textContent='100%';
+            st.className='t-status ok'; st.textContent='完成 ✓'; sp.textContent='';
+        } else {
+            fill.classList.add('err');
+            badge.className='t-badge err'; badge.innerHTML='<i class="fas fa-xmark"></i>';
+            st.className='t-status fail'; st.textContent='失败'; sp.textContent=err||'';
+        }
+        if(Object.values(tasks).every(t=>t._done)) document.getElementById('t-dot').classList.remove('active');
+        setTimeout(()=>{
+            document.getElementById(`tc-${id}`)?.remove(); delete tasks[id];
+            if(Object.keys(tasks).length===0) {
+                document.getElementById('t-list').innerHTML='<div class="t-empty" id="t-empty"><i class="fas fa-arrow-right-arrow-left"></i>暂无传输任务</div>';
+                document.getElementById('t-clear').style.display='none';
+                document.getElementById('t-dot').classList.remove('active');
             }
-        } catch (e) {
-            alert('设置失败：' + e.message);
+        }, 4500);
+    }
+
+    function clearDone() {
+        Object.entries(tasks).forEach(([id,t])=>{ if(t._done){document.getElementById(`tc-${id}`)?.remove();delete tasks[id];} });
+        if(Object.keys(tasks).length===0){
+            document.getElementById('t-list').innerHTML='<div class="t-empty" id="t-empty"><i class="fas fa-arrow-right-arrow-left"></i>暂无传输任务</div>';
+            document.getElementById('t-clear').style.display='none';
         }
     }
 
-    async function loadDisk() {
-        const res = await fetch('/api/disk/dashboard');
-        const d = await res.json();
-        document.getElementById('disk-bar').style.width = d.percent + '%';
-        document.getElementById('disk-percent').innerText = d.percent + '%';
-        document.getElementById('disk-text').innerText = `已用 ${d.used_gb} GB / 总共 ${d.total_gb} GB`;
-    }
-
-    function logout() {
-        fetch('/api/disk/logout', {method:'POST'}).then(() => location.href='/login/login.html');
-    }
-
-    // 初始加载
     loadDisk();
 </script>
 </body>
