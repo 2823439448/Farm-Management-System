@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>注销与设备管理</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <style>
         /* 1. 核心修改：设置固定背景图片 */
         body {
@@ -13,10 +14,10 @@
             background-repeat: no-repeat; /* 不重复 */
             background-attachment: fixed; /* 固定背景，不随内容滚动 */
             margin: 0;
-            padding: 0;
-            height: 100vh; /* 确保 body 至少为视口高度 */
+            padding: 30px 0;
+            min-height: 100vh;
             display: flex;
-            align-items: center; /* 垂直居中 */
+            align-items: flex-start;
             justify-content: center; /* 水平居中 */
         }
 
@@ -68,6 +69,29 @@
         <button id="deleteDeviceBtn" class="btn btn-warning w-100">删除选中设备</button>
     </div>
 
+    <div class="card mb-4 p-3 border-success">
+        <h3 class="card-title text-center text-success">🔑 修改登录密码</h3>
+        <p class="text-center text-muted">点击下方按钮展开密码修改表单。</p>
+        <button class="btn btn-outline-success w-100 mb-0" type="button" data-bs-toggle="collapse" data-bs-target="#changePasswordPanel" aria-expanded="false" aria-controls="changePasswordPanel">
+            点击展开 / 收起
+        </button>
+        <div id="changePasswordPanel" class="collapse mt-3">
+            <div class="mb-3">
+                <label for="oldPassword" class="form-label">当前密码:</label>
+                <input type="password" id="oldPassword" class="form-control" placeholder="请输入当前密码">
+            </div>
+            <div class="mb-3">
+                <label for="newPassword" class="form-label">新密码 (至少6位):</label>
+                <input type="password" id="newPassword" class="form-control" placeholder="请输入新密码">
+            </div>
+            <div class="mb-3">
+                <label for="confirmPassword" class="form-label">确认新密码:</label>
+                <input type="password" id="confirmPassword" class="form-control" placeholder="请再次输入新密码">
+            </div>
+            <button id="changePasswordBtn" class="btn btn-success w-100">确认修改密码</button>
+        </div>
+    </div>
+
     <div class="card p-3 border-danger">
         <h3 class="card-title text-center text-danger">🚨 彻底注销用户账户</h3>
         <p class="text-danger">**严重警告：** 此操作将**永久删除**您的用户账户、所有绑定设备及其产生的**全部数据**。此操作不可逆！</p>
@@ -81,6 +105,7 @@
         document.getElementById('logoutBtn').addEventListener('click', handleLogout);
         document.getElementById('deleteDeviceBtn').addEventListener('click', handleDeleteDevice);
         document.getElementById('deleteUserBtn').addEventListener('click', handleDeleteUser);
+        document.getElementById('changePasswordBtn').addEventListener('click', handleChangePassword);
         fetchDeviceList();
     });
 
@@ -187,6 +212,50 @@
         }
     }
 
+
+    /**
+     * 处理修改密码
+     */
+    async function handleChangePassword() {
+        const oldPassword = document.getElementById('oldPassword').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+
+        if (!oldPassword || !newPassword || !confirmPassword) {
+            showMessage('请填写所有密码字段！', 'error');
+            return;
+        }
+        if (newPassword.length < 6) {
+            showMessage('新密码长度至少需要6位！', 'error');
+            return;
+        }
+        if (newPassword !== confirmPassword) {
+            showMessage('两次输入的新密码不一致！', 'error');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/change-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ oldPassword, newPassword })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                showMessage('密码修改成功！', 'success');
+                document.getElementById('oldPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+            } else if (response.status === 403) {
+                showMessage('修改失败：当前密码不正确。', 'error');
+            } else {
+                showMessage(data.message || '修改密码失败', 'error');
+            }
+        } catch (error) {
+            showMessage('网络请求错误，修改密码失败', 'error');
+        }
+    }
 
     /**
      * ⭐️ 修正点：处理注销用户账户，增加密码确认
